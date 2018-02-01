@@ -1,9 +1,9 @@
 package com.porterlee.preloadinventory;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -17,41 +17,36 @@ import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    private static final String[] requiredPermissions = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SCANNER_RESULT_RECEIVER, android.Manifest.permission.BROADCAST_STICKY};
+    private static final String[] REQUIRED_PERMISSIONS = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SCANNER_RESULT_RECEIVER, android.Manifest.permission.BROADCAST_STICKY};
+    static final String DUPLICATE_BARCODE_TAG = "D";
+    static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
+    static final int MAX_ITEM_HISTORY_INCREASE = 25;
+    static final int ERROR_COLOR = Color.RED;
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final String INTENDED_DEVICE = "XM5";
-    private static final String INTENDED_MANUFACTURER = "Janam Technologies";
-    private static final String INTENDED_MODEL = "XM5";
-    private static final String INTENDED_PRODUCT = "XM5";
-    private static final int INTENDED_SDK_INT = 17;
     private AlertDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        File[] outputs =
+
+        askForPermission();
+
+        //noinspection ResultOfMethodCallIgnored
+        PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
+        //noinspection ResultOfMethodCallIgnored
+        PreloadInventoryActivity.INPUT_PATH.mkdirs();
+
+        File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
+        File[] fileInputs = PreloadInventoryActivity.OUTPUT_PATH.listFiles();
+
+        if ()
+
+        if (fileOutputs.length)
 
         setContentView(R.layout.main_layout);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(false);
-        builder.setTitle("Select Mode");
-        builder.setMessage("Would you like to preload locations or start a standard inventory?");
-        builder.setNegativeButton("Preload", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Log.d(TAG, "Preload");
-                startActivity(getPreloadIntent(MainActivity.this));
-            }
-        });
-        builder.setPositiveButton("Standard Inventory", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Log.d(TAG, "Standard Inventory");
-                startActivity(new Intent(MainActivity.this, InventoryActivity.class));
-            }
-        });
-        dialog = builder.create();
+        Log.d(TAG, "Preload");
+        startActivity(getPreloadIntent(MainActivity.this));
     }
 
     public static Intent getPreloadIntent(Context context) {
@@ -63,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         boolean hasPermissions = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             ArrayList<String> permissionsToGrant = new ArrayList<>();
-            for (String requiredPermission : requiredPermissions) {
+            for (String requiredPermission : REQUIRED_PERMISSIONS) {
                 if (checkSelfPermission(requiredPermission) != PackageManager.PERMISSION_GRANTED) {
                     permissionsToGrant.add(requiredPermission);
                     hasPermissions = false;

@@ -59,13 +59,13 @@ import device.scanner.IScannerService;
 import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
+import static com.porterlee.preloadinventory.MainActivity.DATE_FORMAT;
+import static com.porterlee.preloadinventory.MainActivity.DUPLICATE_BARCODE_TAG;
+import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCREASE;
+
 public class PreloadLocationsActivity extends AppCompatActivity {
-    private static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
-    private static final String DUPLICATE_BARCODE_TAG = "D";
-    private static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
+    static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
-    private static final int MAX_ITEM_HISTORY_INCREASE = 25;
-    private static final int errorColor = Color.RED;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private Vibrator vibrator;
     private File outputFile;
@@ -354,10 +354,6 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 }
 
                 return true;
-            case R.id.action_inventory:
-                startActivity(new Intent(this, InventoryActivity.class));
-                finish();
-                return true;
             case R.id.cancel_save:
                 if (saveTask != null) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -472,7 +468,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
             cursor.close();
             vibrate(300);
             Toast.makeText(this, "Location was already scanned", Toast.LENGTH_SHORT).show();
-            //tags = tags.concat(DUPLICATE_BARCODE_TAG);
+            tags = tags.concat(DUPLICATE_BARCODE_TAG);
             return;
         }
 
