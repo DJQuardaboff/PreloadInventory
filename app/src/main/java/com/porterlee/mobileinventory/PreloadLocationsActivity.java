@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.ColorStateList;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
@@ -102,126 +103,8 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         databaseFile.mkdirs();
 
         try {
-            db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
-
-            //db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
-
-            db.execSQL("CREATE TABLE IF NOT EXISTS " + LocationTable.TABLE_CREATION);
-
-            LAST_LOCATION_BARCODE_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
-
-            locationCount = getLocationCount();
-            lastLocationBarcode = getLastLocationBarcode();
-
-            progressBar = findViewById(R.id.progress_saving);
-
-            this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    randomScan();
-                }
-            });
-
-            locationRecyclerView = findViewById(R.id.location_list_view);
-            locationRecyclerView.setHasFixedSize(true);
-            locationRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-            locationRecyclerAdapter = new RecyclerView.Adapter() {
-                @Override
-                public long getItemId(int i) {
-                    Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
-                    cursor.moveToFirst();
-                    long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
-                    cursor.close();
-                    return id;
-                }
-
-                @Override
-                public int getItemCount() {
-                    int count = locationCount;
-                    count = Math.min(count, maxItemHistory);
-                    return count;
-                }
-
-                @Override
-                public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                    final PreloadLocationViewHolder preloadLocationViewHolder = new PreloadLocationViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_locations_item_layout, parent, false));
-                    preloadLocationViewHolder.expandedMenuButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            PopupMenu popup = new PopupMenu(PreloadLocationsActivity.this, view);
-                            MenuInflater inflater = popup.getMenuInflater();
-                            inflater.inflate(R.menu.popup_menu, popup.getMenu());
-                            popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                                @Override
-                                public boolean onMenuItemClick(MenuItem menuItem) {
-                                    if (saveTask != null) {
-                                        Toast.makeText(PreloadLocationsActivity.this, "Cannot edit inventory while saving", Toast.LENGTH_SHORT).show();
-                                        return true;
-                                    }
-                                    AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-                                    builder.setCancelable(true);
-                                    builder.setTitle("Remove location");
-                                    builder.setMessage("Are you sure you want to remove this item?");
-                                    builder.setNegativeButton("no", null);
-                                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int which) {
-                                            Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
-                                            removeLocation(preloadLocationViewHolder);
-                                        }
-                                    });
-                                    builder.create().show();
-
-                                    return true;
-                                }
-                            });
-                            popup.show();
-                        }
-                    });
-                    return preloadLocationViewHolder;
-                }
-
-                @Override
-                public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
-                    Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
-                    cursor.moveToFirst();
-
-                    final long locationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
-                    final String locationBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
-                    final String locationDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
-                    final String locationTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
-
-                    cursor.close();
-
-                    ((PreloadLocationViewHolder) holder).bindViews(locationId, locationBarcode, locationDescription, locationTags);
-                }
-
-                @Override
-                public int getItemViewType(int i) {
-                    return 0;
-                }
-            };
-            locationRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                @Override
-                public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                    super.onScrollStateChanged(recyclerView, newState);
-                    if (!recyclerView.canScrollVertically(1) && locationRecyclerAdapter.getItemCount() >= maxItemHistory) {
-                        //Log.v(TAG, "Scroll state changed to: " + (newState == RecyclerView.SCROLL_STATE_IDLE ? "SCROLL_STATE_IDLE" : (newState == RecyclerView.SCROLL_STATE_DRAGGING ? "SCROLL_STATE_DRAGGING" : "SCROLL_STATE_SETTLING")));
-
-                        maxItemHistory += MAX_ITEM_HISTORY_INCREASE;
-                        locationRecyclerAdapter.notifyDataSetChanged();
-                    }
-                }
-            });
-            locationRecyclerView.setAdapter(locationRecyclerAdapter);
-            final RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
-            itemRecyclerAnimator.setAddDuration(100);
-            itemRecyclerAnimator.setChangeDuration(100);
-            itemRecyclerAnimator.setMoveDuration(100);
-            itemRecyclerAnimator.setRemoveDuration(100);
-            locationRecyclerView.setItemAnimator(itemRecyclerAnimator);
-            updateInfo();
-        } catch (Exception e) {
+            initialize();
+        } catch (SQLiteCantOpenDatabaseException e) {
             try {
                 if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory)))
                     Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
@@ -231,7 +114,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
                 builder.setCancelable(true);
                 builder.setTitle("Delete Database");
-                builder.setMessage("There was an error loading the last inventory and it could not be archived.\nWould you like to delete the it?\nAnswering no will return you to the previous screen.");
+                builder.setMessage("There was an error loading the last list and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will return you to the previous screen.");
                 builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -247,12 +130,134 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                             return;
                         }
                         Toast.makeText(PreloadLocationsActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                        initialize();
                     }
                 });
                 builder.create().show();
             }
-            db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
         }
+    }
+
+    private void initialize() throws SQLiteCantOpenDatabaseException {
+        db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
+
+        //db.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + LocationTable.TABLE_CREATION);
+
+        LAST_LOCATION_BARCODE_STATEMENT = db.compileStatement("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1;");
+
+        locationCount = getLocationCount();
+        lastLocationBarcode = getLastLocationBarcode();
+
+        progressBar = findViewById(R.id.progress_saving);
+
+        this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                randomScan();
+            }
+        });
+
+        locationRecyclerView = findViewById(R.id.location_list_view);
+        locationRecyclerView.setHasFixedSize(true);
+        locationRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        locationRecyclerAdapter = new RecyclerView.Adapter() {
+            @Override
+            public long getItemId(int i) {
+                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
+                cursor.moveToFirst();
+                long id = cursor.getLong(cursor.getColumnIndex(InventoryDatabase.ID));
+                cursor.close();
+                return id;
+            }
+
+            @Override
+            public int getItemCount() {
+                int count = locationCount;
+                count = Math.min(count, maxItemHistory);
+                return count;
+            }
+
+            @Override
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                final PreloadLocationViewHolder preloadLocationViewHolder = new PreloadLocationViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_locations_item_layout, parent, false));
+                preloadLocationViewHolder.expandedMenuButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        PopupMenu popup = new PopupMenu(PreloadLocationsActivity.this, view);
+                        MenuInflater inflater = popup.getMenuInflater();
+                        inflater.inflate(R.menu.popup_menu, popup.getMenu());
+                        popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem menuItem) {
+                                if (saveTask != null) {
+                                    Toast.makeText(PreloadLocationsActivity.this, "Cannot edit list while saving", Toast.LENGTH_SHORT).show();
+                                    return true;
+                                }
+                                AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
+                                builder.setCancelable(true);
+                                builder.setTitle("Remove location");
+                                builder.setMessage("Are you sure you want to remove this location?");
+                                builder.setNegativeButton("no", null);
+                                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
+                                        removeLocation(preloadLocationViewHolder);
+                                    }
+                                });
+                                builder.create().show();
+
+                                return true;
+                            }
+                        });
+                        popup.show();
+                    }
+                });
+                return preloadLocationViewHolder;
+            }
+
+            @Override
+            public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
+                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
+                cursor.moveToFirst();
+
+                final long locationId = cursor.getInt(cursor.getColumnIndex(InventoryDatabase.ID));
+                final String locationBarcode = cursor.getString(cursor.getColumnIndex(InventoryDatabase.BARCODE));
+                final String locationDescription = cursor.getString(cursor.getColumnIndex(InventoryDatabase.DESCRIPTION));
+                final String locationTags = cursor.getString(cursor.getColumnIndex(InventoryDatabase.TAGS));
+
+                cursor.close();
+
+                ((PreloadLocationViewHolder) holder).bindViews(locationId, locationBarcode, locationDescription, locationTags);
+            }
+
+            @Override
+            public int getItemViewType(int i) {
+                return 0;
+            }
+        };
+        locationRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                if (!recyclerView.canScrollVertically(1) && locationRecyclerAdapter.getItemCount() >= maxItemHistory) {
+                    //Log.v(TAG, "Scroll state changed to: " + (newState == RecyclerView.SCROLL_STATE_IDLE ? "SCROLL_STATE_IDLE" : (newState == RecyclerView.SCROLL_STATE_DRAGGING ? "SCROLL_STATE_DRAGGING" : "SCROLL_STATE_SETTLING")));
+
+                    maxItemHistory += MAX_ITEM_HISTORY_INCREASE;
+                    locationRecyclerAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+        locationRecyclerView.setAdapter(locationRecyclerAdapter);
+        final RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
+        itemRecyclerAnimator.setAddDuration(100);
+        itemRecyclerAnimator.setChangeDuration(100);
+        itemRecyclerAnimator.setMoveDuration(100);
+        itemRecyclerAnimator.setRemoveDuration(100);
+        locationRecyclerView.setItemAnimator(itemRecyclerAnimator);
+        updateInfo();
     }
 
     @Override
@@ -479,6 +484,10 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         TextView locationTextView;
         private ColorStateList locationBarcodeTextViewDefaultColor;
         private ImageButton expandedMenuButton;
+        private String barcode;
+        private String description;
+        private String tags;
+        //todo finish
 
         public long getId() {
             return id;
@@ -497,11 +506,6 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         public String getTags() {
             return tags;
         }
-
-        private String barcode;
-        private String description;
-        private String tags;
-        //todo finish
 
         PreloadLocationViewHolder(final View itemView) {
             super(itemView);
