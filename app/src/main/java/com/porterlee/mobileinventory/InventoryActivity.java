@@ -225,7 +225,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
                     public void onClick(View view) {
                         PopupMenu popup = new PopupMenu(InventoryActivity.this, view);
                         MenuInflater inflater = popup.getMenuInflater();
-                        inflater.inflate(R.menu.inventory_item_popup_menu, popup.getMenu());
+                        inflater.inflate(R.menu.popup_menu, popup.getMenu());
                         popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                             @Override
                             public boolean onMenuItemClick(MenuItem menuItem) {
@@ -409,9 +409,9 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
 
                 return true;
             case R.id.action_preload:
-                //startActivity(MainActivity.getPreloadIntent(this));
+                startActivity(MainActivity.getPreloadIntent(this));
                 //startActivity(new Intent(this, PreloadLocationsActivity.class));
-                //finish();
+                finish();
                 //Toast.makeText(this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.cancel_save:

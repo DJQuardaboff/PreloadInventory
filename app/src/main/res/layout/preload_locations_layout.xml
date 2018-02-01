@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    tools:context="com.porterlee.mobileinventory.MainActivity">
+    tools:context="com.porterlee.mobileinventory.PreloadLocationsActivity">
 
     <LinearLayout
         android:id="@+id/info_layout"

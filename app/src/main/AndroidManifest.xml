@@ -20,7 +20,7 @@
         android:supportsRtl="true">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.porterlee.mobileinventory.MainActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/MainTheme"
@@ -33,7 +33,7 @@
         </activity>
 
         <activity
-            android:name=".InventoryActivity"
+            android:name="com.porterlee.mobileinventory.InventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/InventoryTheme"
@@ -46,7 +46,7 @@
         </activity>
 
         <activity
-            android:name=".PreloadLocationsActivity"
+            android:name="com.porterlee.mobileinventory.PreloadLocationsActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
@@ -59,7 +59,7 @@
         </activity>
 
         <activity
-            android:name=".PreloadInventoryActivity"
+            android:name="com.porterlee.mobileinventory.PreloadInventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
