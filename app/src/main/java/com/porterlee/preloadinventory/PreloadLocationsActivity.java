@@ -13,7 +13,6 @@ import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
-import android.graphics.Color;
 import android.media.MediaScannerConnection;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -354,7 +353,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 }
 
                 return true;
-            case R.id.cancel_save:
+            case R.id.action_cancel_save:
                 if (saveTask != null) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setCancelable(true);
@@ -410,7 +409,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         progressBar.setProgress(0);
         //progressBar.setVisibility(View.VISIBLE);
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
-        mOptionsMenu.findItem(R.id.cancel_save).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(true);
         mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
         mOptionsMenu.findItem(R.id.action_inventory).setVisible(false);
         onPrepareOptionsMenu(mOptionsMenu);
@@ -421,7 +420,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         //progressBar.setVisibility(View.GONE);
         progressBar.setProgress(0);
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
-        mOptionsMenu.findItem(R.id.cancel_save).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(false);
         mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
         mOptionsMenu.findItem(R.id.action_inventory).setVisible(true);
         onPrepareOptionsMenu(mOptionsMenu);

@@ -1,14 +1,12 @@
 <resources>
-    <string name="app_name">Mobile Inventory</string>
-    <string name="random_scan_button_text">Random Scan</string>
+    <string name="app_name">Preload Inventory</string>
     <string name="menu_description">Item Menu</string>
     <string name="clear_inventory">Clear inventory</string>
     <string name="remove_item">Remove item</string>
     <string name="view_pictures">View pictures</string>
     <string name="take_picture">Take a picture</string>
     <string name="save_to_file">Save to file</string>
-    <string name="switch_to_preload">Switch to preload</string>
-    <string name="switch_to_inventory">Switch to inventory</string>
+    <string name="switch_to_locations">Preload locations</string>
     <string name="last_scan_title_string">Last scan:</string>
     <string name="current_location_title_string">Current location:</string>
     <string name="total_items_title_string">Items:</string>

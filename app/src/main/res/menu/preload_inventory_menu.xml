@@ -3,30 +3,30 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".InventoryActivity" >
+    tools:context=".PreloadLocationsActivity">
 
     <item
         android:id="@+id/action_save_to_file"
         android:icon="@drawable/ic_save_white_24dp"
         android:title="@string/save_to_file"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="ifRoom"/>
 
     <item
-        android:id="@+id/cancel_save"
+        android:id="@+id/action_cancel_save"
         android:icon="@drawable/ic_clear_white_24dp"
         android:title="@string/cancel_save"
         android:visible="false"
-        app:showAsAction="always" />
+        app:showAsAction="always"/>
 
     <item
         android:id="@+id/action_remove_all"
         android:icon="@drawable/ic_delete_sweep_white_24dp"
-        android:title="@string/clear_inventory"
-        app:showAsAction="never" />
+        android:title="@string/clear_list"
+        app:showAsAction="never"/>
 
     <item
-        android:id="@+id/action_preload"
-        android:title="@string/switch_to_preload"
-        app:showAsAction="never" />
+        android:id="@+id/action_inventory"
+        android:title="@string/switch_to_locations"
+        app:showAsAction="never"/>
 
 </menu>

@@ -12,7 +12,7 @@
         app:showAsAction="ifRoom" />
 
     <item
-        android:id="@+id/cancel_save"
+        android:id="@+id/action_cancel_save"
         android:icon="@drawable/ic_clear_white_24dp"
         android:title="@string/cancel_save"
         android:visible="false"
@@ -26,7 +26,7 @@
 
     <item
         android:id="@+id/action_inventory"
-        android:title="@string/switch_to_inventory"
+        android:title="@string/switch_to_locations"
         app:showAsAction="never"/>
 
 </menu>

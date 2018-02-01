@@ -10,48 +10,69 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.DateFormat;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String[] REQUIRED_PERMISSIONS = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SCANNER_RESULT_RECEIVER, android.Manifest.permission.BROADCAST_STICKY};
+    static final String FILE_NAME_KEY = "file_name";
     static final String DUPLICATE_BARCODE_TAG = "D";
     static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
     static final int MAX_ITEM_HISTORY_INCREASE = 25;
     static final int ERROR_COLOR = Color.RED;
     private static final String TAG = MainActivity.class.getSimpleName();
-    private AlertDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         askForPermission();
+        startActivity(getPreloadIntent(MainActivity.this));
+    }
 
+    public static Intent getPreloadIntent(Context context) throws IOException {
         //noinspection ResultOfMethodCallIgnored
         PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.INPUT_PATH.mkdirs();
 
+        if (context.getFilesDir() + PreloadInventoryDatabase.FILE_NAME);
+
         File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
         File[] fileInputs = PreloadInventoryActivity.OUTPUT_PATH.listFiles();
 
-        if ()
+        if (fileOutputs == null || fileInputs == null) {
+            Toast.makeText(context, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
+            return null;
+        }
 
-        if (fileOutputs.length)
+        int outputNum = fileOutputs.length;
+        int inputNum = fileInputs.length;
+        Intent intent;
 
-        setContentView(R.layout.main_layout);
-
-        Log.d(TAG, "Preload");
-        startActivity(getPreloadIntent(MainActivity.this));
-    }
-
-    public static Intent getPreloadIntent(Context context) {
-
-        return new Intent(context, PreloadLocationsActivity.class);
+        if (inputNum > 0) {
+            intent = new Intent(context, PreloadInventoryActivity.class);
+            intent.putExtra(FILE_NAME_KEY, fileInputs[0].getName());
+            return intent;
+        } else if (outputNum > 0) {
+            if (inputNum > 0) {
+                //fileOutputs[0];
+                return null;
+            } else {
+                intent = new Intent(context, PreloadLocationsActivity.class);
+                intent.putExtra(FILE_NAME_KEY, fileOutputs[0].getName());
+                return intent;
+            }
+        } else {
+            intent = new Intent(context, PreloadLocationsActivity.class);
+            intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
+            return intent;
+        }
     }
 
     private boolean askForPermission() {
