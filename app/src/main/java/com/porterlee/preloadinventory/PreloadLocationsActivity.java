@@ -61,6 +61,7 @@ import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
 import static com.porterlee.preloadinventory.MainActivity.DATE_FORMAT;
 import static com.porterlee.preloadinventory.MainActivity.DUPLICATE_BARCODE_TAG;
+import static com.porterlee.preloadinventory.MainActivity.FILE_NAME_KEY;
 import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCREASE;
 
 public class PreloadLocationsActivity extends AppCompatActivity {
@@ -106,7 +107,12 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         archiveDirectory = new File(getFilesDir() + "/" + PreloadLocationsDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
+        String intentFileName = getIntent().getStringExtra(FILE_NAME_KEY);
+        if (intentFileName != null) {
+            outputFile = new File(OUTPUT_PATH.getAbsolutePath(), intentFileName);
+        } else {
+            outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
+        }
         //noinspection ResultOfMethodCallIgnored
         outputFile.mkdirs();
         databaseFile = new File(getFilesDir() + "/" + PreloadLocationsDatabase.DIRECTORY + "/" + PreloadLocationsDatabase.FILE_NAME);
@@ -435,7 +441,6 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
         mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(true);
         mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
-        mOptionsMenu.findItem(R.id.action_inventory).setVisible(false);
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
@@ -446,7 +451,6 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
         mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(false);
         mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
-        mOptionsMenu.findItem(R.id.action_inventory).setVisible(true);
         onPrepareOptionsMenu(mOptionsMenu);
     }
 

@@ -14,8 +14,8 @@ import android.view.View;
 import java.io.File;
 
 public class PreloadInventoryActivity extends AppCompatActivity {
-    static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
-    static final File INPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
+    static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
+    static final File INPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
     private static final String TAG = PreloadInventoryActivity.class.getSimpleName();
     //todo finish
 

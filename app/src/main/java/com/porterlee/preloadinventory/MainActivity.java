@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         PreloadInventoryActivity.INPUT_PATH.mkdirs();
 
         File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
-        File[] fileInputs = PreloadInventoryActivity.OUTPUT_PATH.listFiles();
+        File[] fileInputs = PreloadInventoryActivity.INPUT_PATH.listFiles();
 
         if (fileOutputs == null || fileInputs == null) {
             Log.e(TAG, "cannot access external files");
@@ -52,30 +52,19 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         int inputNum = fileInputs.length;
         Intent intent;
 
-        //
-        intent = new Intent(context, PreloadLocationsActivity.class);
-        intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
-        return intent;
-        //
-
-        /*if (inputNum > 0) {
+        if (inputNum > 0) {
             intent = new Intent(context, PreloadInventoryActivity.class);
             intent.putExtra(FILE_NAME_KEY, fileInputs[0].getName());
             return intent;
         } else if (outputNum > 0) {
-            if (inputNum > 0) {
-                //fileOutputs[0];
-                return null;
-            } else {
-                intent = new Intent(context, PreloadLocationsActivity.class);
-                intent.putExtra(FILE_NAME_KEY, fileOutputs[0].getName());
-                return intent;
-            }
+            intent = new Intent(context, PreloadLocationsActivity.class);
+            intent.putExtra(FILE_NAME_KEY, fileOutputs[0].getName());
+            return intent;
         } else {
             intent = new Intent(context, PreloadLocationsActivity.class);
             intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
             return intent;
-        }*/
+        }
     }
 
     private boolean askForPermission() {
@@ -125,11 +114,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         }
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
     }
 }
 
