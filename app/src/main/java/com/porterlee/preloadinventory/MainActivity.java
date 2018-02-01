@@ -32,14 +32,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         askForPermission();
-        try {
-            startActivity(getPreloadIntent(MainActivity.this));
-            finish();
-        } catch (IOException e) {
-            Toast.makeText(this, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
-        } finally {
-            finish();
-        }
     }
 
     public static Intent getPreloadIntent(Context context) throws IOException {
@@ -52,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         File[] fileInputs = PreloadInventoryActivity.OUTPUT_PATH.listFiles();
 
         if (fileOutputs == null || fileInputs == null) {
+            Log.e(TAG, "cannot access external files");
             return null;
         }
 
@@ -118,9 +111,19 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             }
         }
 
-        //if (!havePermissions)
-            //askForPermission();
-        //else
+        try {
+            startActivity(getPreloadIntent(MainActivity.this));
+            finish();
+        } catch (IOException e) {
+            Toast.makeText(this, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "You must give external write permission for this app to work", Toast.LENGTH_SHORT).show();
+            askForPermission();
+        } finally {
+            finish();
+        }
+
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 

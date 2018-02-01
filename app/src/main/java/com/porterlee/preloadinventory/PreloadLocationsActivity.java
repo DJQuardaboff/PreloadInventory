@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.database.Cursor;
@@ -65,6 +66,8 @@ import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCRE
 public class PreloadLocationsActivity extends AppCompatActivity {
     static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
+    private static final String FIRST_RUN_KEY = "firstrun";
+    private SharedPreferences sharedPreferences;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private Vibrator vibrator;
     private File outputFile;
@@ -89,6 +92,8 @@ public class PreloadLocationsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.preload_locations_layout);
+
+        sharedPreferences = getPreferences(MODE_PRIVATE);
 
         try {
             initScanner();
@@ -123,12 +128,19 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 databaseLoadingError();
             }
         }
-
-        //for (int i = 0; i < 10000; i++)
-            //randomScan();
+        sharedPreferences.edit().putBoolean(FIRST_RUN_KEY, false).apply();
     }
 
     private void databaseLoadingError() {
+        if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true)) {
+            if (databaseFile.delete()) {
+                initialize();
+                return;
+            } else {
+                finish();
+                return;
+            }
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
         builder.setCancelable(true);
         builder.setTitle("Delete Database");
