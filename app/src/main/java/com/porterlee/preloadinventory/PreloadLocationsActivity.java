@@ -1,4 +1,4 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.preloadinventory;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -44,7 +44,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.porterlee.mobileinventory.PreloadLocationsDatabase.LocationTable;
+import com.porterlee.preloadinventory.PreloadLocationsDatabase.LocationTable;
 
 import java.io.BufferedReader;
 import java.io.File;

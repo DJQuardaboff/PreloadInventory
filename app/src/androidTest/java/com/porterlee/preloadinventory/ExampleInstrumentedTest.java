@@ -1,4 +1,4 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.preloadinventory;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

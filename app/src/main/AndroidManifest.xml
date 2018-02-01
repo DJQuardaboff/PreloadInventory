@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.porterlee.mobileinventory">
+    package="com.porterlee.preloadinventory">
 
     <permission
-        android:name="com.porterlee.mobileinventory.permission.SCANNER_RESULT_RECEIVER"
+        android:name="com.porterlee.preloadinventory.permission.SCANNER_RESULT_RECEIVER"
         android:protectionLevel="normal"/>
 
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -20,7 +20,7 @@
         android:supportsRtl="true">
 
         <activity
-            android:name="com.porterlee.mobileinventory.MainActivity"
+            android:name="com.porterlee.preloadinventory.MainActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/MainTheme"
@@ -33,20 +33,7 @@
         </activity>
 
         <activity
-            android:name="com.porterlee.mobileinventory.InventoryActivity"
-            android:configChanges="orientation"
-            android:screenOrientation="portrait"
-            android:theme="@style/InventoryTheme"
-            android:windowSoftInputMode="stateAlwaysHidden">
-
-            <intent-filter>
-                <action android:name="com.porterlee.mobileinventory.INVENTORY"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name="com.porterlee.mobileinventory.PreloadLocationsActivity"
+            android:name="com.porterlee.preloadinventory.PreloadLocationsActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
@@ -59,7 +46,7 @@
         </activity>
 
         <activity
-            android:name="com.porterlee.mobileinventory.PreloadInventoryActivity"
+            android:name="com.porterlee.preloadinventory.PreloadInventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"

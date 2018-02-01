@@ -1,6 +1,5 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.preloadinventory;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,16 +10,10 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.View;
-import android.view.WindowManager;
-import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
-
-import device.scanner.DecodeResult;
-import device.scanner.IScannerService;
 
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
@@ -36,52 +29,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //startActivity(new Intent(this, InventoryActivity.class));
-        //finish();
-
-        //WindowManager windowmanager = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
-        //windowmanager.getDefaultDisplay().
-        //windowmanager.getDefaultDisplay().getMetrics(displayMetrics);
-
-        ////Log.d(TAG, "BRAND: \"" + Build.BRAND);
-        //Log.d(TAG, "DEVICE: \"" + Build.DEVICE + "\"");
-        ////Log.d(TAG, "DISPLAY: \"" + Build.DISPLAY + "\"");
-        //Log.d(TAG, "FINGERPRINT: \"" + Build.FINGERPRINT + "\"");
-        ////Log.d(TAG, "BOARD: \"" + Build.BOARD + "\"");
-        ////Log.d(TAG, "BOOTLOADER: \"" + Build.BOOTLOADER + "\"");
-        ////Log.d(TAG, "HARDWARE: \"" + Build.HARDWARE + "\"");
-        ////Log.d(TAG, "getRadioVersion(): \"" + Build.getRadioVersion() + "\"");
-        ////Log.d(TAG, "HOST: \"" + Build.HOST + "\"");
-        ////Log.d(TAG, "ID: \"" + Build.ID + "\"");
-        //Log.d(TAG, "MANUFACTURER: \"" + Build.MANUFACTURER + "\"");
-        //Log.d(TAG, "MODEL: \"" + Build.MODEL + "\"");
-        //Log.d(TAG, "PRODUCT: \"" + Build.PRODUCT + "\"");
-        ////Log.d(TAG, "TAGS: \"" + Build.TAGS + "\"");
-        ////Log.d(TAG, "TIME: \"" + Build.TIME + "\"");
-        ////Log.d(TAG, "TYPE: \"" + Build.TYPE + "\"");
-        ////Log.d(TAG, "UNKNOWN: \"" + Build.UNKNOWN + "\"");
-        ////Log.d(TAG, "USER: \"" + Build.USER + "\"");
-        ////Log.d(TAG, "VERSION.CODENAME: \"" + Build.VERSION.CODENAME + "\"");
-        ////Log.d(TAG, "VERSION.INCREMENTAL: \"" + Build.VERSION.INCREMENTAL + "\"");
-        ////Log.d(TAG, "VERSION.RELEASE: \"" + Build.VERSION.RELEASE + "\"");
-        //Log.d(TAG, "VERSION.SDK_INT: \"" + Build.VERSION.SDK_INT + "\"");
-
-
-        /*if (!(Build.MANUFACTURER.equals(INTENDED_MANUFACTURER) && (Build.DEVICE.equals(INTENDED_DEVICE) || Build.MODEL.equals(INTENDED_MODEL) || Build.PRODUCT.equals(INTENDED_PRODUCT)))) {
-            Log.d(TAG, "Incorrect device");
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setCancelable(false);
-            builder.setTitle("Incorrect device");
-            builder.setMessage("This version of the Mobile Inventory only works on the Janam XM5");
-            builder.setNeutralButton("Ok", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    finish();
-                }
-            });
-            dialog = builder.create();
-            return;
-        }*/
+        File[] outputs =
 
         setContentView(R.layout.main_layout);
 

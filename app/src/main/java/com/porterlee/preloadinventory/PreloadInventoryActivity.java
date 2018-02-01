@@ -1,4 +1,4 @@
-package com.porterlee.mobileinventory;
+package com.porterlee.preloadinventory;
 
 import android.content.Intent;
 import android.database.Cursor;

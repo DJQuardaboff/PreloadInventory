@@ -4,7 +4,7 @@ android {
     compileSdkVersion 27
     
     defaultConfig {
-        applicationId "com.porterlee.mobileinventory"
+        applicationId "com.porterlee.preloadinventory"
         minSdkVersion 17
         targetSdkVersion 27
         versionCode 1
