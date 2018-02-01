@@ -14,7 +14,6 @@
         android:id="@+id/info_layout"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:paddingBottom="2dp"
         android:background="@color/colorPrimary"
         android:orientation="vertical">
 
@@ -80,27 +79,27 @@
                 android:textColor="#FFFFFF"/>
 
         </LinearLayout>
-    </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/inventory_column_labels"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
-        android:background="#DF3F51B5"
-        android:gravity="end"
-        app:layout_constraintTop_toBottomOf="@id/info_layout">
-
-        <TextView
-            android:layout_width="280dp"
+        <LinearLayout
+            android:id="@+id/inventory_column_labels"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/inventory_location_column_title"
-            android:layout_marginEnd="37dp"
-            android:textSize="15sp"
-            android:textColor="#7FFFFFFF"
-            android:gravity="center"/>
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:background="#ff6e40"
+            android:gravity="end"
+            app:layout_constraintTop_toBottomOf="@id/info_layout">
 
+            <TextView
+                android:layout_width="280dp"
+                android:layout_height="wrap_content"
+                android:text="@string/inventory_location_column_title"
+                android:layout_marginEnd="37dp"
+                android:textSize="15sp"
+                android:textColor="#7FFFFFFF"
+                android:gravity="center"/>
+
+        </LinearLayout>
     </LinearLayout>
 
     <android.support.v7.widget.RecyclerView
@@ -110,7 +109,7 @@
         android:paddingBottom="50dp"
         android:clipToPadding="false"
         android:layoutAnimation="@anim/layout_animation"
-        app:layout_constraintTop_toBottomOf="@+id/inventory_column_labels"
+        app:layout_constraintTop_toBottomOf="@+id/info_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>

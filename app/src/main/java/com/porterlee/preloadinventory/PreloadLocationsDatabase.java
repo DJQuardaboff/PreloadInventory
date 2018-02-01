@@ -15,11 +15,11 @@ public class PreloadLocationsDatabase {
         public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + BARCODE + " TEXT, " + DESCRIPTION + " TEXT, " + TAGS + " TEXT, " + DATE_TIME + " BIGINT )";
 
         public class Keys {
-            public static final String ID = NAME + '.' + InventoryDatabase.ID;
-            public static final String BARCODE = NAME + '.' + InventoryDatabase.BARCODE;
-            public static final String DESCRIPTION = NAME + '.' + InventoryDatabase.DESCRIPTION;
-            public static final String TAGS = NAME + '.' + InventoryDatabase.TAGS;
-            public static final String DATE_TIME = NAME + '.' + InventoryDatabase.DATE_TIME;
+            public static final String ID = NAME + '.' + PreloadLocationsDatabase.ID;
+            public static final String BARCODE = NAME + '.' + PreloadLocationsDatabase.BARCODE;
+            public static final String DESCRIPTION = NAME + '.' + PreloadLocationsDatabase.DESCRIPTION;
+            public static final String TAGS = NAME + '.' + PreloadLocationsDatabase.TAGS;
+            public static final String DATE_TIME = NAME + '.' + PreloadLocationsDatabase.DATE_TIME;
         }
     }
 }

@@ -32,7 +32,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         askForPermission();
-        startActivity(getPreloadIntent(MainActivity.this));
+        try {
+            startActivity(getPreloadIntent(MainActivity.this));
+        } catch (IOException e) {
+            Toast.makeText(this, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public static Intent getPreloadIntent(Context context) throws IOException {
@@ -41,13 +45,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.INPUT_PATH.mkdirs();
 
-        if (context.getFilesDir() + PreloadInventoryDatabase.FILE_NAME);
-
         File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
         File[] fileInputs = PreloadInventoryActivity.OUTPUT_PATH.listFiles();
 
         if (fileOutputs == null || fileInputs == null) {
-            Toast.makeText(context, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -97,21 +98,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         return hasPermissions;
     }
 
-    private void askForMode() {
-        if (!dialog.isShowing()) dialog.show();
-        /*final AlertDialog d = dialog;
-
-        if(d != null) {
-            d.getButton(Dialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Log.d(TAG, "Preload");
-                    Toast.makeText(MainActivity.this, "Preload mode is not ready yet", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }*/
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         boolean havePermissions = true;
@@ -133,12 +119,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     protected void onStart() {
         super.onStart();
         askForPermission();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        askForMode();
     }
 }
 

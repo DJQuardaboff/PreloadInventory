@@ -264,6 +264,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         itemRecyclerAnimator.setRemoveDuration(100);
         locationRecyclerView.setItemAnimator(itemRecyclerAnimator);
         updateInfo();
+        System.out.println("test");
     }
 
     @Override
