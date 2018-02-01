@@ -132,8 +132,7 @@ public class InventoryActivity extends AppCompatActivity implements ActivityComp
         databaseFile.mkdirs();
 
         try {
-            throw new SQLiteCantOpenDatabaseException();
-            //initialize();
+            initialize();
         } catch (SQLiteCantOpenDatabaseException e) {
             try {
                 //System.out.println(databaseFile.exists());
