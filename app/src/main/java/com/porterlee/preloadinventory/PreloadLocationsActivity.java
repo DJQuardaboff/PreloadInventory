@@ -141,8 +141,9 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 return;
             }
         }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-        builder.setCancelable(true);
+        builder.setCancelable(false);
         builder.setTitle("Delete Database");
         builder.setMessage("There was an error loading the last list and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will return you to the previous screen.");
         builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
