@@ -37,8 +37,6 @@ public class PreloadInventoryActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_inventory:
-                startActivity(new Intent(this, InventoryActivity.class));
-                finish();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
