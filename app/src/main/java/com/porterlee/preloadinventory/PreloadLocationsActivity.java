@@ -111,37 +111,48 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         try {
             initialize();
         } catch (SQLiteCantOpenDatabaseException e) {
+            e.printStackTrace();
             try {
-                if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory)))
+                if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory))) {
                     Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
+                } else {
+                    databaseLoadingError();
+                }
             } catch (IOException e1) {
-                //Toast.makeText(this, "There was an error loading the database and it could not be archived", Toast.LENGTH_SHORT).show();
                 e1.printStackTrace();
-                AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-                builder.setCancelable(true);
-                builder.setTitle("Delete Database");
-                builder.setMessage("There was an error loading the last list and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will return you to the previous screen.");
-                builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        finish();
-                    }
-                });
-                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (!databaseFile.delete()) {
-                            Toast.makeText(PreloadLocationsActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
-                            finish();
-                            return;
-                        }
-                        Toast.makeText(PreloadLocationsActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
-                        initialize();
-                    }
-                });
-                builder.create().show();
+                databaseLoadingError();
             }
         }
+
+        //for (int i = 0; i < 10000; i++)
+            //randomScan();
+    }
+
+    private void databaseLoadingError() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
+        builder.setCancelable(true);
+        builder.setTitle("Delete Database");
+        builder.setMessage("There was an error loading the last list and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will return you to the previous screen.");
+        builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                finish();
+            }
+        });
+        builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (!databaseFile.delete()) {
+                    Toast.makeText(PreloadLocationsActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
+                Toast.makeText(PreloadLocationsActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
+                initialize();
+            }
+        });
+
+        builder.create().show();
     }
 
     private void initialize() throws SQLiteCantOpenDatabaseException {
@@ -264,7 +275,6 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         itemRecyclerAnimator.setRemoveDuration(100);
         locationRecyclerView.setItemAnimator(itemRecyclerAnimator);
         updateInfo();
-        System.out.println("test");
     }
 
     @Override

@@ -34,8 +34,11 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         askForPermission();
         try {
             startActivity(getPreloadIntent(MainActivity.this));
+            finish();
         } catch (IOException e) {
             Toast.makeText(this, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
+        } finally {
+            finish();
         }
     }
 
@@ -56,7 +59,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         int inputNum = fileInputs.length;
         Intent intent;
 
-        if (inputNum > 0) {
+        //
+        intent = new Intent(context, PreloadLocationsActivity.class);
+        intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
+        return intent;
+        //
+
+        /*if (inputNum > 0) {
             intent = new Intent(context, PreloadInventoryActivity.class);
             intent.putExtra(FILE_NAME_KEY, fileInputs[0].getName());
             return intent;
@@ -73,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             intent = new Intent(context, PreloadLocationsActivity.class);
             intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
             return intent;
-        }
+        }*/
     }
 
     private boolean askForPermission() {
@@ -118,7 +127,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onStart() {
         super.onStart();
-        askForPermission();
     }
 }
 
