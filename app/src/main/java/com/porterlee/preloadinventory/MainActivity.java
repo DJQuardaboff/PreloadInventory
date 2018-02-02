@@ -31,7 +31,10 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        askForPermission();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            askForPermission();
+        else
+            startApplication();
     }
 
     public static Intent getPreloadIntent(Context context) throws IOException {
