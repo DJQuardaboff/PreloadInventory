@@ -16,4 +16,5 @@
     <string name="inventory_location_column_title">Location</string>
     <string name="total_locations_title_string">Locations:</string>
     <string name="clear_list">Clear list</string>
+    <string name="continuous_mode_title">Continuous mode</string>
 </resources>

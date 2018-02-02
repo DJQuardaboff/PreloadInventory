@@ -25,6 +25,12 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/action_continuous"
+        android:title="@string/continuous_mode_title"
+        android:checkable="true"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_inventory"
         android:title="@string/switch_to_locations"
         app:showAsAction="never"/>

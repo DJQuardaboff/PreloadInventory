@@ -33,6 +33,7 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -56,6 +57,7 @@ import java.util.Random;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
+import device.scanner.ScanConst;
 import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
@@ -91,6 +93,43 @@ public class PreloadLocationsActivity extends AppCompatActivity {
     private SQLiteDatabase db;
     private IScannerService iScanner = null;
     private DecodeResult mDecodeResult = new DecodeResult();
+
+    private BroadcastReceiver mScanKeyEventReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (ScanConst.INTENT_SCANKEY_EVENT.equals(intent.getAction())) {
+                KeyEvent event = intent.getParcelableExtra(ScanConst.EXTRA_SCANKEY_EVENT);
+                switch (event.getKeyCode()) {
+                    case ScanConst.KEYCODE_SCAN_FRONT:
+                        onScanKeyEvent(event.getAction());
+                        break;
+                    case ScanConst.KEYCODE_SCAN_LEFT:
+                        onScanKeyEvent(event.getAction());
+                        break;
+                    case ScanConst.KEYCODE_SCAN_RIGHT:
+                        onScanKeyEvent(event.getAction());
+                        break;
+                    case ScanConst.KEYCODE_SCAN_REAR:
+                        onScanKeyEvent(event.getAction());
+                        break;
+                }
+            }
+        }
+    };
+
+    private void onScanKeyEvent(int action) {
+        if (iScanner != null) {
+            try {
+                if (action == KeyEvent.ACTION_DOWN) {
+                    iScanner.aDecodeSetTriggerOn(1);
+                } else if (action == KeyEvent.ACTION_UP) {
+                    iScanner.aDecodeSetTriggerOn(0);
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -308,12 +347,15 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         resultFilter.setPriority(0);
         resultFilter.addAction("device.scanner.USERMSG");
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
+        registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
+        loadCurrentScannerOptions();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         unregisterReceiver(resultReciever);
+        unregisterReceiver(mScanKeyEventReceiver);
     }
 
     @Override
@@ -330,6 +372,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.preload_locations_menu, menu);
+        loadCurrentScannerOptions();
         return true;
     }
 
@@ -415,6 +458,20 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                     postSave();
                 }
                 return true;
+            case R.id.action_continuous:
+                try {
+                    if (!item.isChecked()){
+                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    } else {
+                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+                    }
+                    item.setChecked(!item.isChecked());
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    item.setChecked(false);
+                    Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
+                }
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -431,6 +488,24 @@ public class PreloadLocationsActivity extends AppCompatActivity {
             //} catch (InterruptedException e) { }
             iScanner.aDecodeSetDecodeEnable(1);
             iScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
+        }
+    }
+
+    private void loadCurrentScannerOptions() {
+        if (mOptionsMenu != null) {
+            MenuItem item = mOptionsMenu.findItem(R.id.action_continuous);
+            try {
+                if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
+                    iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    item.setChecked(false);
+                } else
+                    item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+                item.setVisible(false);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 
