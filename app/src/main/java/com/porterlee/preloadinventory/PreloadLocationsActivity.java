@@ -317,6 +317,15 @@ public class PreloadLocationsActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (saveTask != null) {
+            saveTask.cancel(false);
+            saveTask = null;
+        }
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
