@@ -103,6 +103,12 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             }
         }
 
+        startApplication();
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private void startApplication() {
         try {
             startActivity(getPreloadIntent(MainActivity.this));
             finish();
@@ -115,8 +121,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         } finally {
             finish();
         }
-
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }
 
