@@ -662,6 +662,159 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         //archiveDirectory.mkdirs();
     }
 
+    class SaveToFileTask extends AsyncTask<Void, Integer, String> {
+        protected String doInBackground(Void... voids) {
+            Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " ASC;",null);
+
+            locationCursor.moveToFirst();
+            int locationBarcodeIndex = locationCursor.getColumnIndex(PreloadLocationsDatabase.BARCODE);
+            int locationDateTimeIndex = locationCursor.getColumnIndex(PreloadLocationsDatabase.DATE_TIME);
+
+            //Log.v(TAG, "Saving to file");
+
+            int lineIndex = -1;
+            int progress = 0;
+            int tempProgress;
+
+            try {
+                //noinspection ResultOfMethodCallIgnored
+                OUTPUT_PATH.mkdirs();
+                final File TEMP_OUTPUT_FILE = File.createTempFile("data", ".txt", OUTPUT_PATH);
+                Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
+                int totalLocationCount = locationCursor.getCount();
+                PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
+                lineIndex = 0;
+                String tempText;
+
+                while (!locationCursor.isAfterLast()) {
+                    if (isCancelled())
+                        return "Save canceled";
+
+                    tempProgress = (int) (((((float) lineIndex) / totalLocationCount) / 1.5) * maxProgress);
+                    if (progress != tempProgress) {
+                        publishProgress(tempProgress);
+                        progress = tempProgress;
+                    }
+
+                    tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
+                    printStream.println(tempText);
+                    printStream.flush();
+                    locationCursor.moveToNext();
+                    lineIndex++;
+                }
+
+                lineIndex = -1;
+                printStream.close();
+                locationCursor.moveToFirst();
+                BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
+                String line;
+                lineIndex = 0;
+
+                while (!locationCursor.isAfterLast()) {
+                    if (isCancelled())
+                        return "Save canceled";
+
+                    tempProgress = (int) (((((float) lineIndex / totalLocationCount) / 3) + (2 / 3f)) * maxProgress);
+                    if (progress != tempProgress) {
+                        publishProgress(tempProgress);
+                        progress = tempProgress;
+                    }
+
+                    line = br.readLine();
+                    tempText = locationCursor.getString(locationCursor.getColumnIndex(PreloadLocationsDatabase.BARCODE)) + "|" + locationCursor.getString(locationCursor.getColumnIndex(PreloadLocationsDatabase.DATE_TIME));
+
+                    if (!tempText.equals(line)) {
+                        Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
+                                "Expected String: " + tempText + "\n" +
+                                "String in file: " + line);
+                        return "There was a problem verifying the output file";
+                    }
+
+                    //Log.v(TAG, itemText);
+                    locationCursor.moveToNext();
+                    lineIndex++;
+                }
+
+                lineIndex = -1;
+
+                locationCursor.close();
+                locationCursor.close();
+                br.close();
+
+                if (outputFile.exists() && !outputFile.delete()) {
+                    //noinspection ResultOfMethodCallIgnored
+                    TEMP_OUTPUT_FILE.delete();
+                    Log.e(TAG, "Could not delete existing output file");
+                    return "Could not delete existing output file";
+                }
+
+                if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
+                    //noinspection ResultOfMethodCallIgnored
+                    TEMP_OUTPUT_FILE.delete();
+                    Log.e(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
+                    return "Could not rename temp file to \"" + outputFile.getName() + "\"";
+                }
+            } catch (FileNotFoundException e){//IOException e) {
+                if (lineIndex == -1) {
+                    Log.e(TAG, "FileNotFoundException occurred outside of while loops: " + e.getMessage());
+                    e.printStackTrace();
+                    return "IOException occurred while saving";
+                } else {
+                    Log.e(TAG, "FileNotFoundException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
+                    e.printStackTrace();
+                    return "IOException occurred at line " + lineIndex + " in file while saving";
+                }
+            } catch (IOException e){//IOException e) {
+                if (lineIndex == -1) {
+                    Log.e(TAG, "IOException occurred outside of while loops: " + e.getMessage());
+                    e.printStackTrace();
+                    return "IOException occurred while saving";
+                } else {
+                    Log.e(TAG, "IOException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
+                    e.printStackTrace();
+                    return "IOException occurred at line " + lineIndex + " in file while saving";
+                }
+            }
+
+            Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
+            return "Saved to file";
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                progressBar.setProgress(progress[0],true);
+                progressBar.animate();
+            } else*/ {
+                progressBar.setProgress(progress[0]);
+            }
+        }
+
+        protected void onPostExecute(String result) {
+            if (savingToast != null) {
+                savingToast.cancel();
+                savingToast = null;
+            }
+
+            Toast.makeText(PreloadLocationsActivity.this, result, Toast.LENGTH_SHORT).show();
+            if (changedSinceLastArchive)
+                archiveDatabase();
+            postSave();
+            MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{outputFile.getAbsolutePath()}, null, null);
+        }
+
+        @Override
+        protected void onCancelled(String s) {
+            if (savingToast != null) {
+                savingToast.cancel();
+                savingToast = null;
+            }
+
+            Toast.makeText(PreloadLocationsActivity.this, s, Toast.LENGTH_SHORT).show();
+            postSave();
+        }
+    }
+
     private class ScanResultReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -685,167 +838,5 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 }
             }
         }
-    }
-}
-
-class SaveToFileTask extends AsyncTask<Object, Integer, String> {
-    public static final int DATABASE_INDEX = 0;
-    public static final int MAX_PROGRESS_INDEX = 0;
-    public static final int DATABASE_INDEX = 0;
-
-
-    protected String doInBackground(Object... objects) {
-        final SQLiteDatabase db = (SQLiteDatabase) objects[DATABASE_INDEX];
-        final int maxProgress = (Integer) objects[MAX_PROGRESS_INDEX];
-        final File outputFile = (File) objects[]
-
-        Cursor locationCursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DATE_TIME + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " ASC;",null);
-
-        locationCursor.moveToFirst();
-        int locationBarcodeIndex = locationCursor.getColumnIndex(PreloadLocationsDatabase.BARCODE);
-        int locationDateTimeIndex = locationCursor.getColumnIndex(PreloadLocationsDatabase.DATE_TIME);
-
-        //Log.v(TAG, "Saving to file");
-
-        int lineIndex = -1;
-        int progress = 0;
-        int tempProgress;
-
-        try {
-            //noinspection ResultOfMethodCallIgnored
-            OUTPUT_PATH.mkdirs();
-            final File TEMP_OUTPUT_FILE = File.createTempFile("data", ".txt", OUTPUT_PATH);
-            Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
-            int totalLocationCount = locationCursor.getCount();
-            PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
-            lineIndex = 0;
-            String tempText;
-
-            while (!locationCursor.isAfterLast()) {
-                if (isCancelled())
-                    return "Save canceled";
-
-                tempProgress = (int) (((((float) lineIndex) / totalLocationCount) / 1.5) * maxProgress);
-                if (progress != tempProgress) {
-                    publishProgress(tempProgress);
-                    progress = tempProgress;
-                }
-
-                tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
-                printStream.println(tempText);
-                printStream.flush();
-                locationCursor.moveToNext();
-                lineIndex++;
-            }
-
-            lineIndex = -1;
-            printStream.close();
-            locationCursor.moveToFirst();
-            BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
-            String line;
-            lineIndex = 0;
-
-            while (!locationCursor.isAfterLast()) {
-                if (isCancelled())
-                    return "Save canceled";
-
-                tempProgress = (int) (((((float) lineIndex / totalLocationCount) / 3) + (2 / 3f)) * maxProgress);
-                if (progress != tempProgress) {
-                    publishProgress(tempProgress);
-                    progress = tempProgress;
-                }
-
-                line = br.readLine();
-                tempText = locationCursor.getString(locationCursor.getColumnIndex(PreloadLocationsDatabase.BARCODE)) + "|" + locationCursor.getString(locationCursor.getColumnIndex(PreloadLocationsDatabase.DATE_TIME));
-
-                if (!tempText.equals(line)) {
-                    Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
-                            "Expected String: " + tempText + "\n" +
-                            "String in file: " + line);
-                    return "There was a problem verifying the output file";
-                }
-
-                //Log.v(TAG, itemText);
-                locationCursor.moveToNext();
-                lineIndex++;
-            }
-
-            lineIndex = -1;
-
-            locationCursor.close();
-            locationCursor.close();
-            br.close();
-
-            if (outputFile.exists() && !outputFile.delete()) {
-                //noinspection ResultOfMethodCallIgnored
-                TEMP_OUTPUT_FILE.delete();
-                Log.e(TAG, "Could not delete existing output file");
-                return "Could not delete existing output file";
-            }
-
-            if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
-                //noinspection ResultOfMethodCallIgnored
-                TEMP_OUTPUT_FILE.delete();
-                Log.e(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
-                return "Could not rename temp file to \"" + outputFile.getName() + "\"";
-            }
-        } catch (FileNotFoundException e){//IOException e) {
-            if (lineIndex == -1) {
-                Log.e(TAG, "FileNotFoundException occurred outside of while loops: " + e.getMessage());
-                e.printStackTrace();
-                return "IOException occurred while saving";
-            } else {
-                Log.e(TAG, "FileNotFoundException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
-                e.printStackTrace();
-                return "IOException occurred at line " + lineIndex + " in file while saving";
-            }
-        } catch (IOException e){//IOException e) {
-            if (lineIndex == -1) {
-                Log.e(TAG, "IOException occurred outside of while loops: " + e.getMessage());
-                e.printStackTrace();
-                return "IOException occurred while saving";
-            } else {
-                Log.e(TAG, "IOException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
-                e.printStackTrace();
-                return "IOException occurred at line " + lineIndex + " in file while saving";
-            }
-        }
-
-        Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
-        return "Saved to file";
-    }
-
-    @Override
-    protected void onProgressUpdate(Integer... progress) {
-            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                progressBar.setProgress(progress[0],true);
-                progressBar.animate();
-            } else*/ {
-            progressBar.setProgress(progress[0]);
-        }
-    }
-
-    protected void onPostExecute(String result) {
-        if (savingToast != null) {
-            savingToast.cancel();
-            savingToast = null;
-        }
-
-        Toast.makeText(PreloadLocationsActivity.this, result, Toast.LENGTH_SHORT).show();
-        if (changedSinceLastArchive)
-            archiveDatabase();
-        postSave();
-        MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{outputFile.getAbsolutePath()}, null, null);
-    }
-
-    @Override
-    protected void onCancelled(String s) {
-        if (savingToast != null) {
-            savingToast.cancel();
-            savingToast = null;
-        }
-
-        Toast.makeText(PreloadLocationsActivity.this, s, Toast.LENGTH_SHORT).show();
-        postSave();
     }
 }
