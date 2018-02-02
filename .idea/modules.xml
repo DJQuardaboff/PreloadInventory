@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/MobileInventory.iml" filepath="$PROJECT_DIR$/MobileInventory.iml" />
+      <module fileurl="file://$PROJECT_DIR$/PreloadInventory.iml" filepath="$PROJECT_DIR$/PreloadInventory.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/device.hijack/device.hijack.iml" filepath="$PROJECT_DIR$/device.hijack/device.hijack.iml" />
       <module fileurl="file://$PROJECT_DIR$/device.nfc/device.nfc.iml" filepath="$PROJECT_DIR$/device.nfc/device.nfc.iml" />
