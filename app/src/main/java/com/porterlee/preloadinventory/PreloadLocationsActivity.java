@@ -746,10 +746,16 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 OUTPUT_PATH.mkdirs();
                 final File TEMP_OUTPUT_FILE = File.createTempFile("data", ".txt", OUTPUT_PATH);
                 Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
-                int totalLocationCount = locationCursor.getCount();
+                int totalLocationCount = locationCursor.getCount() + 1;
                 PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
                 lineIndex = 0;
-                String tempText;
+
+                //
+                String tempText = BuildConfig.APPLICATION_ID + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+                printStream.print(tempText);
+                printStream.flush();
+                lineIndex++;
+                //
 
                 while (!locationCursor.isAfterLast()) {
                     if (isCancelled())
@@ -774,6 +780,11 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
                 String line;
                 lineIndex = 0;
+
+                //
+                br.readLine();
+                lineIndex++;
+                //
 
                 while (!locationCursor.isAfterLast()) {
                     if (isCancelled())

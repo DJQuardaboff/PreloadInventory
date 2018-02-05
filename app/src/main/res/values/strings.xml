@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Preload Inventory</string>
+    <string name="app_name">Preload Inventory v1.2</string>
     <string name="menu_description">Item Menu</string>
     <string name="clear_inventory">Clear inventory</string>
     <string name="remove_item">Remove item</string>
