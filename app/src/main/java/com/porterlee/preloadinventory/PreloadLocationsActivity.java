@@ -648,8 +648,8 @@ public class PreloadLocationsActivity extends AppCompatActivity {
             }
 
             cursor.close();
-            Log.e(TAG, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory");
-            Toast.makeText(PreloadLocationsActivity.this, "Error removing item " + (barcode.equals("") ? "#" + holder.getAdapterPosition() : "\"" + barcode +"\", #" + holder.getAdapterPosition() ) + " from the inventory", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error removing location \"" + barcode +"\" from the list");
+            Toast.makeText(PreloadLocationsActivity.this, "Error removing location \"" + barcode +"\" from the list", Toast.LENGTH_SHORT).show();
         }
     }
 
