@@ -66,7 +66,7 @@ import static com.porterlee.preloadinventory.MainActivity.DUPLICATE_BARCODE_TAG;
 import static com.porterlee.preloadinventory.MainActivity.FILE_NAME_KEY;
 import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCREASE;
 
-public class PreloadLocationsActivity extends AppCompatActivity {
+public class PreloadLocationsActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
     private int maxProgress;
@@ -897,6 +897,29 @@ public class PreloadLocationsActivity extends AppCompatActivity {
             Toast.makeText(PreloadLocationsActivity.this, s, Toast.LENGTH_SHORT).show();
             postSave();
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (permissions.length != 0 && grantResults.length != 0) {
+            for (int i = 0; i < permissions.length; i++) {
+                if (permissions[i].equals(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    if (requestCode == 1) {
+                        if (saveTask == null) {
+                            preSave();
+                            archiveDatabase();
+                            (savingToast = Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT)).show();
+                            saveTask = new SaveToFileTask().execute();
+                        } else {
+                            saveTask.cancel(false);
+                            postSave();
+                        }
+                    }
+                }
+            }
+        }
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     private class ScanResultReceiver extends BroadcastReceiver {
