@@ -42,7 +42,7 @@ public class PreloadInventoryDatabase {
 
     public class PreloadItemTable {
         public static final String NAME = "preload_items";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOAD_LOCATION_ID + " INTEGER, " + BARCODE + " TEXT, " + CASE_NUMBER + " TEXT, " + ITEM_NUMBER + " TEXT, " + PACKAGING + " TEXT, " + DESCRIPTION + " TEXT )";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOAD_LOCATION_ID + " INTEGER, " + BARCODE + " TEXT, " + CASE_NUMBER + " TEXT, " + ITEM_NUMBER + " TEXT, " + PACKAGE + " TEXT, " + DESCRIPTION + " TEXT )";
 
         public class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;
