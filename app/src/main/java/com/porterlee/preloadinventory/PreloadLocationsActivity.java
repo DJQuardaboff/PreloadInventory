@@ -258,7 +258,7 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                                 AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
                                 builder.setCancelable(true);
                                 builder.setTitle("Remove location");
-                                builder.setMessage("Are you sure you want to remove this location?");
+                                builder.setMessage("Are you sure you want to remove location \"" + preloadLocationViewHolder.getBarcode() + "\"?");
                                 builder.setNegativeButton("no", null);
                                 builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                     @Override
