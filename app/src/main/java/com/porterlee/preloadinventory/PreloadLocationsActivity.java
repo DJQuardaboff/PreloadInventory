@@ -61,17 +61,14 @@ import device.scanner.ScanConst;
 import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static android.content.ContentValues.TAG;
 import static com.porterlee.preloadinventory.MainActivity.DATE_FORMAT;
 import static com.porterlee.preloadinventory.MainActivity.DUPLICATE_BARCODE_TAG;
 import static com.porterlee.preloadinventory.MainActivity.FILE_NAME_KEY;
 import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCREASE;
-import static com.porterlee.preloadinventory.PreloadLocationsActivity.OUTPUT_PATH;
 
 public class PreloadLocationsActivity extends AppCompatActivity {
     static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
-    private static final String FIRST_RUN_KEY = "firstrun";
     private int maxProgress;
     private SharedPreferences sharedPreferences;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
@@ -149,17 +146,12 @@ public class PreloadLocationsActivity extends AppCompatActivity {
         archiveDirectory = new File(getFilesDir() + "/" + PreloadLocationsDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        String intentFileName = getIntent().getStringExtra(FILE_NAME_KEY);
-        if (intentFileName != null) {
-            outputFile = new File(OUTPUT_PATH.getAbsolutePath(), intentFileName);
-        } else {
-            outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
-        }
+        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
         //noinspection ResultOfMethodCallIgnored
-        outputFile.mkdirs();
+        outputFile.getParentFile().mkdirs();
         databaseFile = new File(getFilesDir() + "/" + PreloadLocationsDatabase.DIRECTORY + "/" + PreloadLocationsDatabase.FILE_NAME);
         //noinspection ResultOfMethodCallIgnored
-        databaseFile.mkdirs();
+        databaseFile.getParentFile().mkdirs();
 
         try {
             initialize();
@@ -176,20 +168,9 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                 databaseLoadingError();
             }
         }
-        sharedPreferences.edit().putBoolean(FIRST_RUN_KEY, false).apply();
     }
 
     private void databaseLoadingError() {
-        if (sharedPreferences.getBoolean(FIRST_RUN_KEY, true)) {
-            if (databaseFile.delete()) {
-                initialize();
-                return;
-            } else {
-                finish();
-                return;
-            }
-        }
-
         AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
         builder.setCancelable(false);
         builder.setTitle("Delete Database");
