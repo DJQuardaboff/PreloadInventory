@@ -895,6 +895,8 @@ public class PreloadLocationsActivity extends AppCompatActivity {
                         scanBarcode(barcode);
                     } else if (!barcode.equals("SCAN AGAIN")){
                         Toast.makeText(PreloadLocationsActivity.this, "Malformed barcode: " + barcode, Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(PreloadLocationsActivity.this, "Barcode prefix and suffix might not be set", Toast.LENGTH_SHORT).show();
                     }
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
