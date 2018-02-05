@@ -280,17 +280,15 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
             @Override
             public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
-                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + ", " + LocationTable.Keys.DESCRIPTION + ", " + LocationTable.Keys.TAGS + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
+                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
                 cursor.moveToFirst();
 
                 final long locationId = cursor.getInt(cursor.getColumnIndex(PreloadLocationsDatabase.ID));
                 final String locationBarcode = cursor.getString(cursor.getColumnIndex(PreloadLocationsDatabase.BARCODE));
-                final String locationDescription = cursor.getString(cursor.getColumnIndex(PreloadLocationsDatabase.DESCRIPTION));
-                final String locationTags = cursor.getString(cursor.getColumnIndex(PreloadLocationsDatabase.TAGS));
 
                 cursor.close();
 
-                ((PreloadLocationViewHolder) holder).bindViews(locationId, locationBarcode, locationDescription, locationTags);
+                ((PreloadLocationViewHolder) holder).bindViews(locationId, locationBarcode);
             }
 
             @Override
@@ -559,7 +557,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             return;
         }
 
-        String tags = "";
         if (saveTask != null) {
             vibrate(300);
             Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
@@ -572,12 +569,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             cursor.close();
             vibrate(300);
             Toast.makeText(this, "Location was already scanned", Toast.LENGTH_SHORT).show();
-            tags = tags.concat(DUPLICATE_BARCODE_TAG);
             return;
         }
 
         cursor.close();
-        addLocation(barcode, tags);
+        addLocation(barcode);
     }
 
     private void vibrate(long millis) {
@@ -588,12 +584,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         }
     }
 
-    private void addLocation(@NonNull String barcode, @NonNull String tags) {
+    private void addLocation(@NonNull String barcode) {
         if (saveTask != null) return;
 
         ContentValues newItem = new ContentValues();
         newItem.put(PreloadLocationsDatabase.BARCODE, barcode);
-        newItem.put(PreloadLocationsDatabase.TAGS, tags);
         newItem.put(PreloadLocationsDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         if (db.insert(LocationTable.NAME, null, newItem) == -1) {
@@ -692,8 +687,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         private ColorStateList locationBarcodeTextViewDefaultColor;
         private ImageButton expandedMenuButton;
         private String barcode;
-        private String description;
-        private String tags;
 
         public long getId() {
             return id;
@@ -705,14 +698,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             return barcode;
         }
 
-        public String getDescription() {
-            return description;
-        }
-
-        public String getTags() {
-            return tags;
-        }
-
         PreloadLocationViewHolder(final View itemView) {
             super(itemView);
             locationTextView = itemView.findViewById(R.id.location_text_view);
@@ -720,11 +705,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             expandedMenuButton = itemView.findViewById(R.id.menu_button);
         }
 
-        void bindViews(long id, String barcode, String description, String tags) {
+        void bindViews(long id, String barcode) {
             this.id = id;
             this.barcode = barcode;
-            this.description = description;
-            this.tags = tags;
 
             locationTextView.setText(barcode);
         }
