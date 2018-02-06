@@ -32,21 +32,21 @@
             android:orientation="horizontal">
 
             <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="@string/last_scan_title_string"
                 android:paddingEnd="8dp"
-                android:textSize="17sp"
                 android:layout_weight="1"
                 android:gravity="end"
                 android:textColor="#FFFFFF"
                 tools:ignore="RtlSymmetry"/>
 
             <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
                 android:id="@+id/last_scan"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textSize="17sp"
                 android:layout_weight="1"
                 android:gravity="start"
                 android:textColor="#FFFFFF"/>
@@ -59,47 +59,40 @@
             android:orientation="horizontal">
 
             <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="@string/total_locations_title_string"
                 android:paddingEnd="8dp"
-                android:textSize="17sp"
                 android:layout_weight="1"
                 android:gravity="end"
                 android:textColor="#FFFFFF"
                 tools:ignore="RtlSymmetry"/>
 
             <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
                 android:id="@+id/total_locations"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textSize="17sp"
                 android:layout_weight="1"
                 android:gravity="start"
                 android:textColor="#FFFFFF"/>
 
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/inventory_column_labels"
+        <TextView
+            style="@style/Base.TextAppearance.AppCompat.Small"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/inventory_location_column_title"
+            android:textColor="#7FFFFFFF"
             android:paddingTop="2dp"
             android:paddingBottom="2dp"
+            android:paddingStart="51dp"
+            android:paddingEnd="37dp"
             android:background="#ff6e40"
-            android:gravity="center"
-            app:layout_constraintTop_toBottomOf="@id/info_layout">
+            android:gravity="start"/>
 
-            <TextView
-                android:layout_width="280dp"
-                android:layout_height="wrap_content"
-                android:text="@string/inventory_location_column_title"
-                android:layout_marginEnd="37dp"
-                android:textSize="15sp"
-                android:textColor="#7FFFFFFF"
-                android:gravity="center"/>
-
-        </LinearLayout>
     </LinearLayout>
 
     <android.support.v7.widget.RecyclerView

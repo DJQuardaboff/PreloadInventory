@@ -18,22 +18,16 @@
         android:orientation="horizontal"
         android:gravity="end">
 
-        <LinearLayout
+        <TextView
+            style="@style/Base.TextAppearance.AppCompat.Medium"
+            android:id="@+id/location_text_view"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:layout_weight="1">
-
-            <TextView
-                android:id="@+id/location_text_view"
-                android:layout_width="280dp"
-                android:layout_height="30dp"
-                android:textSize="17sp"
-                android:gravity="center"
-                android:layout_gravity="center"/>
-
-        </LinearLayout>
+            android:layout_marginStart="50dp"
+            android:layout_marginEnd="4dp"
+            android:gravity="start"
+            android:layout_weight="1"
+            android:layout_gravity="center"/>
 
         <ImageButton
             android:id="@+id/menu_button"
