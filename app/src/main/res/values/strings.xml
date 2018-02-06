@@ -17,4 +17,7 @@
     <string name="total_locations_title_string">Locations:</string>
     <string name="clear_list">Clear list</string>
     <string name="continuous_mode_title">Continuous mode</string>
+    <string name="location_status_title_string">Location status:</string>
+    <string name="items_scanned_title_string">Items scanned:</string>
+    <string name="items_misplaced_title_string">Items misplaced:</string>
 </resources>

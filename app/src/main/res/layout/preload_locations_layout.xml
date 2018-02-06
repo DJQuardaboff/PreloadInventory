@@ -90,7 +90,7 @@
             android:paddingBottom="2dp"
             android:paddingStart="51dp"
             android:paddingEnd="37dp"
-            android:background="#ff6e40"
+            android:background="@color/colorPrimaryLight"
             android:gravity="start"/>
 
     </LinearLayout>
