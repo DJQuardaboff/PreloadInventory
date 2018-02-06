@@ -159,7 +159,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             e.printStackTrace();
             try {
                 if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory))) {
-                    Toast.makeText(this, "There was an error loading the database. It has been archived", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "There was an error loading the list file. It has been archived", Toast.LENGTH_SHORT).show();
                 } else {
                     databaseLoadingError();
                 }
@@ -173,8 +173,8 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     private void databaseLoadingError() {
         AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
         builder.setCancelable(false);
-        builder.setTitle("Delete Database");
-        builder.setMessage("There was an error loading the last list and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will return you to the previous screen.");
+        builder.setTitle("Database Load Error");
+        builder.setMessage("There was an error loading the list file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
         builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -263,7 +263,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                                 builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
-                                        Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
+                                        //Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
                                         removeLocation(preloadLocationViewHolder);
                                     }
                                 });
@@ -385,7 +385,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                             int deletedCount = db.delete(LocationTable.NAME, "1", null);
 
                             if (locationCount != deletedCount) {
-                                Log.v(TAG, "Detected inconsistencies with number of locations while deleting");
+                                //Log.v(TAG, "Detected inconsistencies with number of locations while deleting");
                                 //Toast.makeText(PreloadLocationsActivity.this, "Detected inconsistencies with number of locations while deleting", Toast.LENGTH_SHORT).show();
                             }
 
@@ -736,7 +736,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 //noinspection ResultOfMethodCallIgnored
                 OUTPUT_PATH.mkdirs();
                 final File TEMP_OUTPUT_FILE = File.createTempFile("data", ".txt", OUTPUT_PATH);
-                Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
+                //Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
                 int totalLocationCount = locationCursor.getCount() + 1;
                 PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
                 lineIndex = 0;
@@ -825,11 +825,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 if (lineIndex == -1) {
                     Log.e(TAG, "FileNotFoundException occurred outside of while loops: " + e.getMessage());
                     e.printStackTrace();
-                    return "IOException occurred while saving";
+                    return "FileNotFoundException occurred while saving";
                 } else {
                     Log.e(TAG, "FileNotFoundException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
                     e.printStackTrace();
-                    return "IOException occurred at line " + lineIndex + " in file while saving";
+                    return "FileNotFoundException occurred at line " + lineIndex + " in file while saving";
                 }
             } catch (IOException e){//IOException e) {
                 if (lineIndex == -1) {
@@ -843,7 +843,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 }
             }
 
-            Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
+            //Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
             return "Saved to file";
         }
 
