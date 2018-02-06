@@ -114,7 +114,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
-    <Button
+    <!--Button
         android:id="@+id/random_scan_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -122,6 +122,6 @@
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="@id/location_list_view"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toEndOf="parent"/-->
 
 </android.support.constraint.ConstraintLayout>

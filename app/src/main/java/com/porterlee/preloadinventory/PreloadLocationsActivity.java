@@ -212,12 +212,12 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         progressBar = findViewById(R.id.progress_saving);
         maxProgress = progressBar.getMax();
 
-        this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
+        /*this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 randomScan();
             }
-        });
+        });*/
 
         locationRecyclerView = findViewById(R.id.location_list_view);
         locationRecyclerView.setHasFixedSize(true);
@@ -529,7 +529,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
-    private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    /*private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     private void randomScan() {
         Random r = new Random();
@@ -542,7 +542,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             barcode = barcode.toUpperCase();
 
         scanBarcode(barcode);
-    }
+    }*/
 
     private void scanBarcode(String barcode) {
         if (isItem(barcode) || isContainer(barcode)) {
