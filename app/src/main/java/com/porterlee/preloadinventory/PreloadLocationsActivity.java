@@ -174,7 +174,13 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
         builder.setCancelable(false);
         builder.setTitle("Database Load Error");
-        builder.setMessage("There was an error loading the list file and it could not be archived.\n\nWould you like to delete the it?\n\nAnswering no will close the app.");
+        builder.setMessage(
+                "There was an error loading the list file and it could not be archived.\n" +
+                "\n" +
+                "Would you like to delete the it?\n" +
+                "\n" +
+                "Answering no will close the app."
+        );
         builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
