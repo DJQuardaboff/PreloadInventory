@@ -20,4 +20,5 @@
     <string name="location_status_title_string">Location status:</string>
     <string name="items_scanned_title_string">Items scanned:</string>
     <string name="items_misplaced_title_string">Items misplaced:</string>
+    <string name="items_scanned_format_string">%1d of %2d</string>
 </resources>
