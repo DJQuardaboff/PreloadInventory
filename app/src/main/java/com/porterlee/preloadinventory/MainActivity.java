@@ -7,10 +7,9 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -31,12 +30,14 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
             askForPermission();
         else
             startApplication();
     }
 
+    @Nullable
     public static Intent getPreloadIntent(Context context) throws IOException {
         //noinspection ResultOfMethodCallIgnored
         PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
@@ -116,9 +117,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             Toast.makeText(this, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();
         } catch (NullPointerException e) {
             e.printStackTrace();
+            //askForPermission();
             Toast.makeText(this, "You must give external write permission for this app to work", Toast.LENGTH_SHORT).show();
-            askForPermission();
-        } finally {
             finish();
         }
     }
