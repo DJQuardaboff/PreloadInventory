@@ -99,8 +99,6 @@
         android:id="@+id/location_list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:paddingBottom="50dp"
-        android:clipToPadding="false"
         android:layoutAnimation="@anim/layout_animation"
         app:layout_constraintTop_toBottomOf="@+id/info_layout"
         app:layout_constraintStart_toStartOf="parent"
