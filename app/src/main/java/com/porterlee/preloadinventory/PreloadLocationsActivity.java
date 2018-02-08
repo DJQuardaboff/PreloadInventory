@@ -231,11 +231,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         locationRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(i)});
-                cursor.moveToFirst();
-                long id = cursor.getLong(cursor.getColumnIndex(PreloadLocationsDatabase.ID));
-                cursor.close();
-                return id;
+                return ((PreloadLocationViewHolder) locationRecyclerView.findViewHolderForAdapterPosition(i)).getId();
             }
 
             @Override
