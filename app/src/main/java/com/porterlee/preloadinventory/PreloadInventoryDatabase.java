@@ -19,7 +19,7 @@ public class PreloadInventoryDatabase {
 
     public class ScannedItemTable {
         public static final String NAME = "scanned_items";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + LOCATION_ID + " INTEGER, " + PRELOAD_LOCATION_ID + " INTEGER, " + PRELOAD_ITEM_ID + " INTEGER, " + PRELOAD_CONTAINER_ID + " INTEGER, " + BARCODE + " TEXT, " + DATE_TIME + " BIGINT )";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + LOCATION_ID + " INTEGER, " + PRELOAD_LOCATION_ID + " INTEGER, " + PRELOAD_ITEM_ID + " INTEGER, " + PRELOAD_CONTAINER_ID + " INTEGER, " + BARCODE + " TEXT, " + TAGS + " TEXT, " + DATE_TIME + " BIGINT )";
 
         public class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;

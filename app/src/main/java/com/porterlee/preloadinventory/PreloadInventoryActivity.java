@@ -86,7 +86,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private SQLiteStatement GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT;
     private SQLiteStatement GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT;
     private SQLiteStatement GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT;
-    private SQLiteStatement GET_PRELOADED_LOCATION_COUNT_STATEMENT;
+    private SQLiteStatement GET_LOCATION_COUNT_STATEMENT;
     private Vibrator vibrator;
     private File inputFile;
     private File databaseFile;
@@ -200,6 +200,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         //noinspection ResultOfMethodCallIgnored
         inputFile.getParentFile().mkdirs();
         databaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY + "/" + PreloadInventoryDatabase.FILE_NAME);
+        //databaseFile = new File(inputFile.getParent() + "/test.db");
         //noinspection ResultOfMethodCallIgnored
         databaseFile.getParentFile().mkdirs();
 
@@ -253,22 +254,22 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private void initialize() throws SQLiteCantOpenDatabaseException {
         db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
 
-        //db.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedItemTable.TABLE_CREATION);
-        //db.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedLocationTable.TABLE_CREATION);
-        //db.execSQL("DROP TABLE IF EXISTS " + PreloadItemTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE IF EXISTS " + PreloadedItemTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedItemTable.TABLE_CREATION);
-        //db.execSQL("DROP TABLE IF EXISTS " + PreloadContainerTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE IF EXISTS " + PreloadedContainerTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedContainerTable.TABLE_CREATION);
-        //db.execSQL("DROP TABLE IF EXISTS " + PreloadLocationTable.TABLE_CREATION);
+        //db.execSQL("DROP TABLE IF EXISTS " + PreloadedLocationTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedLocationTable.TABLE_CREATION);
 
         long locationId = readFileIntoPreloadDatabase();
 
         //LAST_SCANNED_ITEM_BARCODE_STATEMENT = db.compileStatement("SELECT " + PreloadedItemTable.Keys.BARCODE + " FROM " + PreloadedItemTable.NAME + " WHERE " + PreloadedItemTable.Keys.ID + " = ( SELECT " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " FROM " + ScannedItemTable.NAME + " ORDER BY " + ScannedItemTable.Keys.ID + " DESC LIMIT 1 );");
         //LAST_SCANNED_LOCATION_BARCODE_STATEMENT = db.compileStatement("SELECT " + PreloadedLocationTable.Keys.BARCODE + " FROM " + PreloadedLocationTable.NAME + " WHERE " + PreloadedLocationTable.Keys.ID + " = ( SELECT " + ScannedLocationTable.Keys.PRELOAD_LOCATION_ID + " FROM " + ScannedLocationTable.NAME + " ORDER BY " + ScannedLocationTable.Keys.ID + " DESC LIMIT 1 );");
-        GET_PRELOADED_LOCATION_COUNT_STATEMENT = db.compileStatement("SELECT COUNT(*) FROM ( SELECT " + PreloadInventoryDatabase.BARCODE + " FROM " + PreloadedLocationTable.NAME + " UNION SELECT " + PreloadInventoryDatabase.BARCODE + " FROM " + ScannedLocationTable.NAME + " );");
+        GET_LOCATION_COUNT_STATEMENT = db.compileStatement("SELECT COUNT(*) FROM ( SELECT " + PreloadInventoryDatabase.BARCODE + " FROM " + PreloadedLocationTable.NAME + " UNION SELECT " + PreloadInventoryDatabase.BARCODE + " FROM " + ScannedLocationTable.NAME + " WHERE " + ScannedLocationTable.Keys.PRELOAD_LOCATION_ID + " < 0 );");
         GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT = db.compileStatement("SELECT COUNT(*) FROM ( SELECT DISTINCT " + ScannedItemTable.Keys.BARCODE + " FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " IN ( SELECT " + PreloadedItemTable.Keys.ID + " FROM " + PreloadedItemTable.NAME + " WHERE " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? ) OR " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " IN ( SELECT " + PreloadedContainerTable.Keys.ID + " FROM " + PreloadedContainerTable.NAME + " WHERE " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " = ? ) );");
         GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = db.compileStatement("SELECT COUNT(*) FROM ( SELECT " + ScannedItemTable.Keys.BARCODE + " FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? UNION SELECT " + PreloadedItemTable.Keys.BARCODE + " FROM " + PreloadedItemTable.NAME + " WHERE " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? UNION SELECT " + PreloadedContainerTable.Keys.BARCODE + " FROM " + PreloadedContainerTable.NAME + " WHERE " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " = ? );");
         GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT = db.compileStatement("SELECT COUNT(*) FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.LOCATION_ID + " = ?;");
@@ -380,9 +381,13 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 return new ItemViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_inventory_item_layout, parent, false));
             }
 
+            private static final String ITEM_QUERY_IN_PRELOADED_LOCATION = "SELECT scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND preload_location_id = ? UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadedContainerTable.NAME + " WHERE preload_location_id = ? UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadedItemTable.Keys.ID + " AS preload_item_id, -1 AS preload_container_id, " + PreloadedItemTable.Keys.BARCODE + " AS barcode, " + PreloadedItemTable.Keys.CASE_NUMBER + " AS case_number, " + PreloadedItemTable.Keys.ITEM_NUMBER + " AS item_number, " + PreloadedItemTable.Keys.PACKAGE + " AS packaging, " + PreloadedItemTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadedItemTable.NAME + " WHERE preload_location_id = ? ) ORDER BY format, CASE, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;";
+            private static final String ITEM_QUERY_IN_SCANNED_LOCATION = "SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND scanned_location_id = ? ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;";
+
             @Override
             public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
-                /*Cursor cursor = db.rawQuery("SELECT scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadedContainerTable.NAME + " UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, -1 AS preload_location_id, -1 AS preload_item_id, -1 AS preload_container_id, NULL AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadedItemTable.NAME + " ) ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
+                long currentLocationId = getCurrentPreloadLocationId();
+                Cursor cursor = db.rawQuery(getCurrentIsPreloadLocation() ? ITEM_QUERY_IN_PRELOADED_LOCATION : ITEM_QUERY_IN_SCANNED_LOCATION, getCurrentIsPreloadLocation() ? new String[] {String.valueOf(currentLocationId), String.valueOf(currentLocationId), String.valueOf(currentLocationId), String.valueOf(position)} : new String[] {String.valueOf(currentLocationId), String.valueOf(position)});
                 cursor.moveToFirst();
                 long scannedItemId = cursor.getLong(cursor.getColumnIndex("scanned_item_id"));
                 long scannedLocationId = cursor.getLong(cursor.getColumnIndex("scanned_location_id"));
@@ -408,9 +413,22 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                  * this.description = null;
                  * this.tags = tags;
                  * this.dateTime = dateTime;
-                 *//*
-                cursor.close();*/
-                //((ItemViewHolder) holder).bindViews(scannedItemId, barcode, description, position == selectedLocation, description != null);
+                 */
+                cursor.close();
+                if (scannedItemId == -1 && scannedLocationId == -1 && preloadLocationId != -1) {
+                    if (preloadItemId != -1) {
+                        System.out.println("Preloaded Item at index " + position + "-" + barcode);
+                        ((ItemViewHolder) holder).bindViewsAsPreloadedItem(preloadLocationId, preloadItemId, barcode, caseNumber, itemNumber, packaging, description);
+                    } else if (preloadContainerId != -1) {
+                        if (caseNumber == null) {
+                            System.out.println("Preloaded Bulk Container at index " + position + "-" + barcode);
+                            ((ItemViewHolder) holder).bindViewsAsPreloadedBulkContainer(preloadLocationId, preloadContainerId, barcode, description);
+                        } else {
+                            System.out.println("Preloaded Case Container at index " + position + "-" + barcode);
+                            ((ItemViewHolder) holder).bindViewsAsPreloadedCaseContainer(preloadLocationId, preloadContainerId, barcode, caseNumber, description);
+                        }
+                    }
+                }
                 //todo finish
             }
 
@@ -535,7 +553,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void refreshPreloadedLocationCount() {
-        locationCount = (int) GET_PRELOADED_LOCATION_COUNT_STATEMENT.simpleQueryForLong();
+        locationCount = (int) GET_LOCATION_COUNT_STATEMENT.simpleQueryForLong();
     }
 
     @Override
@@ -669,12 +687,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 if (elements.length > 0) {
                     if (elements.length == 3 && elements[0].equals("LOCATION") && isLocation(elements[1])) {
                         //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
-                        if (currentLocationId == -1) {
-                            firstLocationId = addPreloadLocation(elements[1], elements[2]);
-                            currentLocationId = firstLocationId;
-                        } else {
-                            currentLocationId = addPreloadLocation(elements[1], elements[2]);
-                        }
+                        currentLocationId = addPreloadLocation(elements[1], elements[2]);
+                        firstLocationId = currentLocationId;
                         currentLocationBarcode = elements[1];
                         if (currentLocationId == -1) {
                             Log.e(TAG, "");
@@ -980,12 +994,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             textView1.setText(barcode);
             textView1.setVisibility(View.VISIBLE);
-            dividerView.setVisibility(View.GONE);
-            textView2.setVisibility(View.GONE);
+            dividerView.setVisibility(View.VISIBLE);
+            textView2.setVisibility(View.INVISIBLE);
             //todo finish
         }
 
-        void bindViewsAsPreloadedItem(long preloadLocationId, long preloadItemId, String barcode, String caseNumber, String itemNumber, String packaging, String description, String tags) {
+        void bindViewsAsPreloadedItem(long preloadLocationId, long preloadItemId, String barcode, String caseNumber, String itemNumber, String packaging, String description) {
             this.scannedItemId = -1;
             this.scannedLocationId = -1;
             this.preloadLocationId = preloadLocationId;
@@ -1000,14 +1014,15 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             this.dateTime = null;
             viewType = PRELOADED_ITEM;
 
-            textView1.setText(barcode);
+            textView1.setText(getString(R.string.items_number_format_string, caseNumber, itemNumber));
             textView1.setVisibility(View.VISIBLE);
-            dividerView.setVisibility(View.GONE);
-            textView2.setVisibility(View.GONE);
+            dividerView.setVisibility(View.VISIBLE);
+            textView2.setText(packaging);
+            textView2.setVisibility(View.VISIBLE);
             //todo finish
         }
 
-        void bindViewsAsPreloadedCaseContainer(long preloadLocationId, long preloadContainerId, String barcode, String caseNumber, String description, String tags) {
+        void bindViewsAsPreloadedCaseContainer(long preloadLocationId, long preloadContainerId, String barcode, String caseNumber, String description) {
             this.scannedItemId = -1;
             this.scannedLocationId = -1;
             this.preloadLocationId = preloadLocationId;
@@ -1022,14 +1037,15 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             this.dateTime = null;
             viewType = PRELOADED_CASE_CONTAINER;
 
-            textView1.setText(barcode);
+            textView1.setText(caseNumber);
             textView1.setVisibility(View.VISIBLE);
-            dividerView.setVisibility(View.GONE);
-            textView2.setVisibility(View.GONE);
+            dividerView.setVisibility(View.VISIBLE);
+            textView2.setText(description);
+            textView2.setVisibility(View.VISIBLE);
             //todo finish
         }
 
-        void bindViewsAsPreloadedBulkContainer(long preloadLocationId, long preloadContainerId, String barcode, String description, String tags) {
+        void bindViewsAsPreloadedBulkContainer(long preloadLocationId, long preloadContainerId, String barcode, String description) {
             this.scannedItemId = -1;
             this.scannedLocationId = -1;
             this.preloadLocationId = preloadLocationId;
@@ -1044,10 +1060,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             this.dateTime = dateTime;
             viewType = PRELOADED_BULK_CONTAINER;
 
-            textView1.setText(barcode);
+            textView1.setText(description);
             textView1.setVisibility(View.VISIBLE);
-            dividerView.setVisibility(View.GONE);
-            textView2.setVisibility(View.GONE);
+            dividerView.setVisibility(View.VISIBLE);
+            textView2.setVisibility(View.INVISIBLE);
             //todo finish
         }
     }
