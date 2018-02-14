@@ -5,6 +5,7 @@ public class PreloadInventoryDatabase {
     public static final String DIRECTORY = "Preload/Inventory";
     public static final String ARCHIVE_DIRECTORY = "Archives";
     public static final String ID = "id";
+    public static final String TAGS = "tags";
     public static final String BARCODE = "barcode";
     public static final String LOCATION_ID = "location_id";
     public static final String PRELOAD_ITEM_ID = "preloaded_item_id";
@@ -27,6 +28,7 @@ public class PreloadInventoryDatabase {
             public static final String PRELOAD_ITEM_ID = NAME + '.' + PreloadInventoryDatabase.PRELOAD_ITEM_ID;
             public static final String PRELOAD_CONTAINER_ID = NAME + '.' + PreloadInventoryDatabase.PRELOAD_CONTAINER_ID;
             public static final String BARCODE = NAME + '.' + PreloadInventoryDatabase.BARCODE;
+            public static final String TAGS = NAME + '.' + PreloadInventoryDatabase.TAGS;
             public static final String DATE_TIME = NAME + '.' + PreloadInventoryDatabase.DATE_TIME;
         }
     }

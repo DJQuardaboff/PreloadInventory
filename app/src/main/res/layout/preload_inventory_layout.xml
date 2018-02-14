@@ -12,120 +12,128 @@
     <LinearLayout
         android:id="@+id/info_layout"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:orientation="vertical"
         android:background="@color/colorPrimary"
+        android:paddingStart="3dp"
+        android:paddingEnd="3dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/column_titles">
-
-        <me.zhanghai.android.materialprogressbar.MaterialProgressBar
-            style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
-            android:id="@+id/progress_saving"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:max="320"
-            app:mpb_useIntrinsicPadding="false"
-            app:mpb_progressStyle="horizontal"/>
+        app:layout_constraintBottom_toTopOf="@id/item_list_view"
+        app:layout_constraintVertical_chainStyle="spread"
+        app:layout_constraintVertical_weight="1">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/location_list_view"
             android:layout_width="match_parent"
-            android:layout_margin="2dp"
-            android:layout_height="96dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingTop="4dp"
+            android:clipToPadding="false"
             android:layoutAnimation="@anim/layout_animation"
+            app:layout_constraintBottom_toTopOf="@id/info_layout"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             android:background="@drawable/inventory_location_rounded_recycler"/>
 
         <LinearLayout
-            style="@style/Base.TextAppearance.AppCompat.Medium"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:text="@string/items_scanned_title_string"
+                android:paddingEnd="8dp"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:textColor="#FFFFFF"
+                tools:ignore="RtlSymmetry"/>
 
-                <TextView
-                    style="@style/Base.TextAppearance.AppCompat.Medium"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/items_scanned_title_string"
-                    android:paddingEnd="8dp"
-                    android:layout_weight="1"
-                    android:gravity="end"
-                    android:textColor="#FFFFFF"
-                    tools:ignore="RtlSymmetry"/>
-
-                <TextView
-                    style="@style/Base.TextAppearance.AppCompat.Medium"
-                    android:id="@+id/items_scanned"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="start"
-                    android:textColor="#FFFFFF"/>
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
+                android:id="@+id/items_scanned"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_weight="1"
+                android:gravity="start"
+                android:textColor="#FFFFFF"/>
 
-                <TextView
-                    style="@style/Base.TextAppearance.AppCompat.Medium"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/items_misplaced_title_string"
-                    android:paddingEnd="8dp"
-                    android:layout_weight="1"
-                    android:gravity="end"
-                    android:textColor="#FFFFFF"
-                    tools:ignore="RtlSymmetry"/>
-
-                <TextView
-                    style="@style/Base.TextAppearance.AppCompat.Medium"
-                    android:id="@+id/items_misplaced"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="start"
-                    android:textColor="#FFFFFF"/>
-
-            </LinearLayout>
         </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/items_misplaced_title_string"
+                android:paddingEnd="8dp"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:textColor="#FFFFFF"
+                tools:ignore="RtlSymmetry"/>
+
+            <TextView
+                style="@style/Base.TextAppearance.AppCompat.Medium"
+                android:id="@+id/items_misplaced"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="start"
+                android:textColor="#FFFFFF"/>
+
+        </LinearLayout>
+
+        <TextView
+            style="@style/Base.TextAppearance.AppCompat.Small"
+            android:id="@+id/column_titles"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorPrimaryLight"
+            android:textColor="#7FFFFFFF"
+            app:layout_constraintTop_toBottomOf="@id/info_layout"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/item_list_view"/>
+
     </LinearLayout>
 
-    <TextView
-        style="@style/Base.TextAppearance.AppCompat.Small"
-        android:id="@+id/column_titles"
+    <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
+        android:id="@+id/progress_saving"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/colorPrimaryLight"
-        android:textColor="#7FFFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/info_layout"/>
-
+        android:layout_height="4dp"
+        android:max="320"
+        app:mpb_useIntrinsicPadding="false"
+        app:mpb_progressStyle="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/item_list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:paddingBottom="60dp"
-        android:clipToPadding="false"
         android:layoutAnimation="@anim/layout_animation"
-        app:layout_constraintTop_toBottomOf="@id/column_titles"
+        app:layout_constraintTop_toBottomOf="@id/info_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_chainStyle="spread"
+        app:layout_constraintVertical_weight="1"/>
 
     <Button
         android:id="@+id/random_scan_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/item_list_view"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
