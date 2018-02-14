@@ -20,7 +20,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/item_list_view"
+        app:layout_constraintBottom_toTopOf="@+id/column_titles_layout"
         app:layout_constraintVertical_chainStyle="spread"
         app:layout_constraintVertical_weight="1">
 
@@ -32,10 +32,6 @@
             android:paddingTop="4dp"
             android:clipToPadding="false"
             android:layoutAnimation="@anim/layout_animation"
-            app:layout_constraintBottom_toTopOf="@id/info_layout"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
             android:background="@drawable/inventory_location_rounded_recycler"/>
 
         <LinearLayout
@@ -83,7 +79,7 @@
 
             <TextView
                 style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/items_misplaced"
+                android:id="@+id/misplaced_items_text_view"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -92,17 +88,24 @@
 
         </LinearLayout>
 
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/column_titles_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorPrimaryLight"
+        app:layout_constraintTop_toBottomOf="@id/info_layout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/item_list_view">
+
         <TextView
             style="@style/Base.TextAppearance.AppCompat.Small"
-            android:id="@+id/column_titles"
+            android:id="@+id/column_1_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/colorPrimaryLight"
-            android:textColor="#7FFFFFFF"
-            app:layout_constraintTop_toBottomOf="@id/info_layout"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/item_list_view"/>
+            android:textColor="#7FFFFFFF"/>
 
     </LinearLayout>
 
@@ -123,7 +126,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layoutAnimation="@anim/layout_animation"
-        app:layout_constraintTop_toBottomOf="@id/info_layout"
+        app:layout_constraintTop_toBottomOf="@+id/column_titles_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
