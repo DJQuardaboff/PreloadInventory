@@ -1176,6 +1176,7 @@ class ScanBarcodeTask extends AsyncTask<Object, Void, Object[]> {
     private static final int NON_PRELOADED_CONTAINER = 6;
     private static final int NOT_RECOGNISED = 7;
 
+    @Override
     protected Object[] doInBackground(Object... objects) {
         SQLiteDatabase db = (SQLiteDatabase) objects[0];
         PreloadInventoryActivity activity = (PreloadInventoryActivity) objects[1];
@@ -1183,6 +1184,7 @@ class ScanBarcodeTask extends AsyncTask<Object, Void, Object[]> {
 
         if (isLocation(barcode)) {
             boolean isPreloaded;
+            long rowId;
             long locationId;
             int position;
 
@@ -1201,7 +1203,7 @@ class ScanBarcodeTask extends AsyncTask<Object, Void, Object[]> {
             newScannedLocation.put(PreloadInventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
             if (isSaving) return null;
-            long rowId = db.insert(ScannedLocationTable.NAME, null, newScannedLocation);
+            rowId = db.insert(ScannedLocationTable.NAME, null, newScannedLocation);
 
             activity.GET_FIRST_ID_OF_LOCATION_BARCODE_STATEMENT.bindString(1, barcode);
             locationId = activity.GET_FIRST_ID_OF_LOCATION_BARCODE_STATEMENT.simpleQueryForLong();
@@ -1216,18 +1218,30 @@ class ScanBarcodeTask extends AsyncTask<Object, Void, Object[]> {
 
             return new Object[] {isPreloaded ? PRELOADED_LOCATION : NON_PRELOADED_LOCATION, activity, rowId, barcode, position, isDuplicate};
         } else if (isItem(barcode)) {
-            /*boolean isPreloaded;
+            boolean isPreloaded;
+            long rowId;
             long scannedItemId;
             long preloadedItemId;
             long preloadedContainerId;
             long scannedLocationId;
-            long preloadedLocationId;*/
+            long preloadedLocationId;
 
+
+            ContentValues newScannedItem = new ContentValues();
+            newScannedItem.put(PreloadInventoryDatabase.BARCODE, barcode);
+            newScannedItem.put(PreloadInventoryDatabase.PRELOAD_LOCATION_ID, locationId);
+            newScannedItem.put(PreloadInventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
+
+            if (isSaving) return null;
+            rowId = db.insert(ScannedItemTable.NAME, null, newScannedItem);
+
+            return new Object[] {isPreloaded ? PRELOADED_LOCATION : NON_PRELOADED_LOCATION, activity, rowId, barcode, position, isDuplicate};
         }
         //todo finish
         return null;
     }
 
+    @Override
     protected void onPostExecute(Object[] results) {
         if (results == null) return;
         int barcodeType = (int) results[0];
@@ -1238,43 +1252,47 @@ class ScanBarcodeTask extends AsyncTask<Object, Void, Object[]> {
         boolean isDuplicate = (boolean) results[5];
 
         switch (barcodeType) {
-            case NON_PRELOADED_LOCATION:
-                nonPreloadedLocationScanned(activity, rowId, barcode, position, isDuplicate);
-                break;
             case PRELOADED_LOCATION:
-                preloadedLocationScanned(activity, rowId, barcode, position);
+                if (rowId < 0) {
+                    activity.vibrate(300);
+                    Log.e(TAG, String.format("Error adding location \"%s\" to the list", barcode));
+                    Toast.makeText(activity, String.format("Error adding location \"%s\" to the list", barcode), Toast.LENGTH_SHORT).show();
+                } else {
+                    activity.preloadedLocationScanned(position);
+                }
+                break;
+            case NON_PRELOADED_LOCATION:
+                if (rowId < 0) {
+                    activity.vibrate(300);
+                    if (isDuplicate) {
+                        Log.e(TAG, String.format("Error adding location \"%s\" to the list", barcode));
+                        Toast.makeText(activity, String.format("Error adding location \"%s\" to the list", barcode), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Log.e(TAG, String.format("Error adding location \"%s\" to the list", barcode));
+                        Toast.makeText(activity, String.format("Error adding location \"%s\" to the list", barcode), Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    activity.nonPreloadedLocationScanned(position, isDuplicate);
+                }
+                break;
+            case PRELOADED_ITEM:
+                if (rowId < 0) {
+                    activity.vibrate(300);
+                    Log.e(TAG, String.format("Error adding location \"%s\" to the list", barcode));
+                    Toast.makeText(activity, String.format("Error adding location \"%s\" to the list", barcode), Toast.LENGTH_SHORT).show();
+                } else {
+                    activity.preloadedItemScanned(position, isDuplicate);
+                }
                 break;
         }
         //todo finish
     }
-
-    @UiThread
-    private void preloadedLocationScanned(PreloadInventoryActivity activity, long rowId, String barcode, int position) {
-        if (rowId < 0) {
-            activity.vibrate(300);
-            Log.e(TAG, String.format("Error switching to location \"%s\"", barcode));
-            Toast.makeText(activity, String.format("Error switching to location \"%s\"", barcode), Toast.LENGTH_SHORT).show();
-        } else {
-            activity.preloadedLocationScanned(position);
-        }
-    }
-
-    @UiThread
-    private void nonPreloadedLocationScanned(PreloadInventoryActivity activity, long rowId, String barcode, int position, boolean isDuplicate) {
-        if (rowId < 0) {
-            activity.vibrate(300);
-            Log.e(TAG, String.format("Error adding location \"%s\" to the list", barcode));
-            Toast.makeText(activity, String.format("Error adding location \"%s\" to the list", barcode), Toast.LENGTH_SHORT).show();
-        } else {
-            activity.nonPreloadedLocationScanned(position, isDuplicate);
-        }
-    }
 }
-
 
 class BindLocationTask extends AsyncTask<Object, Void, Object[]> {
     private static final String LOCATION_QUERY_AT_POSITION = "SELECT preloaded_location_id, scanned_location_id, barcode, description FROM ( SELECT " + PreloadedLocationTable.Keys.ID + " AS preloaded_location_id, -1 AS scanned_location_id, " + PreloadedLocationTable.Keys.BARCODE + " AS barcode, " + PreloadedLocationTable.Keys.DESCRIPTION + " AS description, 1 AS filter FROM " + PreloadedLocationTable.NAME + " UNION SELECT " + ScannedLocationTable.Keys.PRELOAD_LOCATION_ID + " AS preloaded_location_id, MIN(" + ScannedLocationTable.Keys.ID + ") AS scanned_location_id, " + ScannedLocationTable.Keys.BARCODE + " AS barcode, NULL AS description, 0 AS filter FROM " + ScannedLocationTable.NAME + " WHERE " + ScannedLocationTable.Keys.PRELOAD_LOCATION_ID + " = -1 GROUP BY barcode ) WHERE scanned_location_id NOT NULL ORDER BY filter, scanned_location_id DESC, preloaded_location_id DESC LIMIT 1 OFFSET ?;";
 
+    @Override
     protected Object[] doInBackground(Object... objects) {
         if (objects == null || objects.length < 4) return null;
         SQLiteDatabase db = (SQLiteDatabase) objects[0];
@@ -1292,6 +1310,7 @@ class BindLocationTask extends AsyncTask<Object, Void, Object[]> {
         return new Object[] {holder, position, selectedLocation, preloadedLocationId, scannedLocationId, barcode, description};
     }
 
+    @Override
     protected void onPostExecute(Object[] results) {
         if (results == null) return;
         PreloadInventoryActivity.LocationViewHolder holder = (PreloadInventoryActivity.LocationViewHolder) results[0];
@@ -1306,7 +1325,6 @@ class BindLocationTask extends AsyncTask<Object, Void, Object[]> {
     }
 }
 
-
 class BindItemTask extends AsyncTask<Object, Void, Object[]> {
     private static final String ITEM_QUERY_IN_PRELOADED_LOCATION_AT_POSITION = "SELECT scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND preload_location_id = ? UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadedContainerTable.NAME + " WHERE preload_location_id = ? UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadedItemTable.Keys.ID + " AS preload_item_id, -1 AS preload_container_id, " + PreloadedItemTable.Keys.BARCODE + " AS barcode, " + PreloadedItemTable.Keys.CASE_NUMBER + " AS case_number, " + PreloadedItemTable.Keys.ITEM_NUMBER + " AS item_number, " + PreloadedItemTable.Keys.PACKAGE + " AS packaging, " + PreloadedItemTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadedItemTable.NAME + " WHERE preload_location_id = ? ) ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;";
     private static final String ITEM_QUERY_IN_SCANNED_LOCATION_AT_POSITION = "SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND scanned_location_id = ? ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;";
@@ -1315,6 +1333,7 @@ class BindItemTask extends AsyncTask<Object, Void, Object[]> {
     private static final String SCANNED_ITEM_POSITION_IN_PRELOADED_LOCATION_BY_ID = "SELECT scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND preload_location_id = ? UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadedContainerTable.NAME + " WHERE preload_location_id = ? UNION SELECT -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadedItemTable.Keys.ID + " AS preload_item_id, -1 AS preload_container_id, " + PreloadedItemTable.Keys.BARCODE + " AS barcode, " + PreloadedItemTable.Keys.CASE_NUMBER + " AS case_number, " + PreloadedItemTable.Keys.ITEM_NUMBER + " AS item_number, " + PreloadedItemTable.Keys.PACKAGE + " AS packaging, " + PreloadedItemTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadedItemTable.NAME + " WHERE preload_location_id = ? ) ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;";
     private static final String ITEM_POSITION_IN_SCANNED_LOCATION_BY_ID = "SELECT " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND scanned_location_id = ? ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC LIMIT 1 OFFSET ?;";
 
+    @Override
     protected Object[] doInBackground(Object... objects) {
         if (objects == null || objects.length < 5) return null;
         SQLiteDatabase db = (SQLiteDatabase) objects[0];
@@ -1349,6 +1368,7 @@ class BindItemTask extends AsyncTask<Object, Void, Object[]> {
         super.onCancelled(results);
     }
 
+    @Override
     protected void onPostExecute(Object[] results) {
         if (results == null) return;
         PreloadInventoryActivity.ItemViewHolder holder = (PreloadInventoryActivity.ItemViewHolder) results[0];
@@ -1382,4 +1402,3 @@ class BindItemTask extends AsyncTask<Object, Void, Object[]> {
         }
     }
 }
-
