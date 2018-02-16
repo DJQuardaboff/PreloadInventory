@@ -2,7 +2,7 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="28dp"
+    android:layout_height="24dp"
     android:orientation="horizontal"
     android:clickable="true"
     android:focusable="true"
@@ -10,13 +10,13 @@
     android:gravity="center" >
 
     <TextView
+        style="@android:style/TextAppearance.DeviceDefault.Medium"
         android:id="@+id/location_description"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
         android:layout_marginEnd="4dp"
         android:gravity="start"
-        android:layout_weight="1"
-        style="@android:style/TextAppearance.DeviceDefault.Medium"/>
+        android:layout_weight="1"/>
 
 </LinearLayout>
