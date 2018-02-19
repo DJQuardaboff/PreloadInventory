@@ -446,7 +446,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void initItemLayout() {
-        System.out.println("hi");
         asyncRefreshItems();
         refreshCurrentScannedAndPreloadedItemCount();
         refreshCurrentPreloadedItemCount();
@@ -615,8 +614,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             //Log.v(TAG, "Detected inconsistencies with number of items while deleting");
 
                             locationRecyclerView.setSelectedItem(-1);
+                            selectedLocationId = -1;
+                            selectedLocationBarcode = null;
                             asyncRefreshLocations();
-                            asyncRefreshItems();
                             updateInfo();
                             Toast.makeText(PreloadInventoryActivity.this, "Inventory cleared", Toast.LENGTH_SHORT).show();
                         }
