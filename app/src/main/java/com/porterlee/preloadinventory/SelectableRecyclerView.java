@@ -6,7 +6,7 @@ import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 
 public class SelectableRecyclerView extends RecyclerView {
-    private int selectedLocation;
+    private int selectedItem;
 
     public SelectableRecyclerView(Context context) {
         super(context);
@@ -20,17 +20,17 @@ public class SelectableRecyclerView extends RecyclerView {
         super(context, attrs, defStyle);
     }
 
-    public boolean setSelectedLocation(int index) {
-        if (index >= getAdapter().getItemCount() || index == selectedLocation)
+    public boolean setSelectedItem(int index) {
+        if (index >= getAdapter().getItemCount() || index == selectedItem)
             return false;
 
-        getAdapter().notifyItemChanged(selectedLocation);
-        selectedLocation = index;
-        getAdapter().notifyItemChanged(selectedLocation);
+        getAdapter().notifyItemChanged(selectedItem);
+        selectedItem = index;
+        getAdapter().notifyItemChanged(selectedItem);
         return true;
     }
 
-    public int getSelectedLocation() {
-        return selectedLocation;
+    public int getSelectedItem() {
+        return selectedItem;
     }
 }

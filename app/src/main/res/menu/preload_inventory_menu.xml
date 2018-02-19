@@ -9,7 +9,7 @@
         android:id="@+id/action_save_to_file"
         android:icon="@drawable/ic_save_white_24dp"
         android:title="@string/save_to_file"
-        app:showAsAction="ifRoom"/>
+        app:showAsAction="always"/>
 
     <item
         android:id="@+id/action_cancel_save"
@@ -31,8 +31,9 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_inventory"
+        android:id="@+id/action_locations"
         android:title="@string/switch_to_locations"
+        android:visible="true"
         app:showAsAction="never"/>
 
 </menu>

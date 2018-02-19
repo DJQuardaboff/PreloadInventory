@@ -384,12 +384,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
                             changedSinceLastArchive = true;
 
-                            int deletedCount = db.delete(LocationTable.NAME, "1", null);
-
-                            if (locationCount != deletedCount) {
-                                //Log.v(TAG, "Detected inconsistencies with number of locations while deleting");
-                                //Toast.makeText(PreloadLocationsActivity.this, "Detected inconsistencies with number of locations while deleting", Toast.LENGTH_SHORT).show();
-                            }
+                            db.delete(LocationTable.NAME, "1", null);
 
                             locationCount = 0;
                             lastLocationBarcode = "-";

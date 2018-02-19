@@ -45,11 +45,13 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.io.PrintStream;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -66,11 +68,6 @@ import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
 import static com.porterlee.preloadinventory.MainActivity.DATE_FORMAT;
-import static com.porterlee.preloadinventory.PreloadInventoryActivity.formatDate;
-import static com.porterlee.preloadinventory.PreloadInventoryActivity.isContainer;
-import static com.porterlee.preloadinventory.PreloadInventoryActivity.isItem;
-import static com.porterlee.preloadinventory.PreloadInventoryActivity.isLocation;
-import static com.porterlee.preloadinventory.PreloadInventoryActivity.isSaving;
 
 public class PreloadInventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String PRELOADED_ITEM_LIST_QUERY = "SELECT _id, scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + ScannedItemTable.Keys.ID + " AS _id, " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND preload_location_id = ? UNION SELECT " + PreloadedContainerTable.Keys.ID + " AS _id, -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadedContainerTable.NAME + " WHERE preload_location_id = ? UNION SELECT " + PreloadedItemTable.Keys.ID + " AS _id, -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadedItemTable.Keys.ID + " AS preload_item_id, -1 AS preload_container_id, " + PreloadedItemTable.Keys.BARCODE + " AS barcode, " + PreloadedItemTable.Keys.CASE_NUMBER + " AS case_number, " + PreloadedItemTable.Keys.ITEM_NUMBER + " AS item_number, " + PreloadedItemTable.Keys.PACKAGE + " AS packaging, " + PreloadedItemTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadedItemTable.NAME + " WHERE preload_location_id = ? ) ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC";
@@ -104,6 +101,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private SharedPreferences sharedPreferences;
     private Vibrator vibrator;
     private File inputFile;
+    private File outputFile;
     private File databaseFile;
     private File archiveDirectory;
     private boolean changedSinceLastArchive = true;
@@ -111,8 +109,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private MaterialProgressBar progressBar;
     private Menu mOptionsMenu;
     static boolean isSaving;
+    static AsyncTask<SparseArray<Object>, Integer, SparseArray<Object>> saveTask;
     static boolean isReading;
-    private int maxProgress;
     private ScanResultReceiver resultReciever;
     long selectedLocationId;
     String selectedLocationBarcode;
@@ -186,6 +184,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         inputFile = new File(INPUT_PATH.getAbsolutePath(), "data.txt");
         //noinspection ResultOfMethodCallIgnored
         inputFile.getParentFile().mkdirs();
+        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "output.txt");
+        //noinspection ResultOfMethodCallIgnored
+        outputFile.getParentFile().mkdirs();
         //databaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY + "/" + PreloadInventoryDatabase.FILE_NAME);
         databaseFile = new File(inputFile.getParent(), "/test.db");
         //noinspection ResultOfMethodCallIgnored
@@ -240,9 +241,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private void initialize() throws SQLiteCantOpenDatabaseException {
         db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null);
 
-        db.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
+        //db.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedItemTable.TABLE_CREATION);
-        db.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.NAME);
+        //db.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedLocationTable.TABLE_CREATION);
         db.execSQL("DROP TABLE IF EXISTS " + PreloadedItemTable.NAME);
         db.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedItemTable.TABLE_CREATION);
@@ -274,7 +275,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         GET_PRELOADED_CONTAINER_ID_FROM_BARCODE_STATEMENT = db.compileStatement("SELECT " + PreloadedContainerTable.Keys.ID + " FROM " + PreloadedContainerTable.NAME + " WHERE " + PreloadedContainerTable.Keys.BARCODE + " = ?");
 
         progressBar = findViewById(R.id.progress_saving);
-        maxProgress = progressBar.getMax();
 
         this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -317,18 +317,17 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         itemRecyclerAnimator.setRemoveDuration(100);
         itemRecyclerView.setItemAnimator(itemRecyclerAnimator);
 
-        locationRecyclerView.setSelectedLocation(-1);
+        locationRecyclerView.setSelectedItem(-1);
         initItemLayout();
 
         asyncRefreshLocations();
-        //new RefreshCursorAdapterTask().execute(db, LOCATION_LIST_QUERY, locationRecyclerAdapter);
     }
 
     private void asyncRefreshItems() {
-        asyncRefreshItemsScrollToBarcode(null);
+        asyncRefreshItemsScrollToItem(null);
     }
 
-    private void asyncRefreshItemsScrollToBarcode(final String barcode) {
+    private void asyncRefreshItemsScrollToItem(final String barcode) {
         new AsyncTask<Void, Void, Cursor>() {
             @Override
             protected Cursor doInBackground(Void... voids) {
@@ -344,6 +343,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     asyncScrollToItem(barcode);
             }
         }.execute();
+        //todo finish
     }
 
     private void asyncScrollToItem(final String barcode) {
@@ -369,6 +369,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     itemRecyclerView.scrollToPosition(position);
             }
         }.execute();
+        //todo finish
     }
 
     private void asyncRefreshLocations() {
@@ -390,6 +391,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 initItemLayout();
             }
         }.execute();
+        //todo finish
     }
 
     private void asyncScrollToLocation(final String barcode) {
@@ -411,11 +413,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             @Override
             protected void onPostExecute(Integer position) {
-                locationRecyclerView.setSelectedLocation(position);
+                locationRecyclerView.setSelectedItem(position);
                 if (position >= 0)
                     locationRecyclerView.scrollToPosition(position);
             }
         }.execute();
+        //todo finish
     }
 
     private void initItemLayout() {
@@ -428,13 +431,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private long getCurrentLocationId() {
-        //return (selectedLocation < 0) ? -1 : ((LocationViewHolder) locationRecyclerView.findViewHolderForAdapterPosition(selectedLocation)).getId();
         return selectedLocationId;
     }
 
     private boolean getCurrentIsPreloadedLocation() {
-        //noinspection SimplifiableConditionalExpression
-        //return (selectedLocation < 0) ? false : ((LocationViewHolder) locationRecyclerView.findViewHolderForAdapterPosition(selectedLocation)).isPreloaded();
         return selectedLocationIsPreloaded;
     }
 
@@ -462,7 +462,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         }
         boolean isPreloadedLocation = getCurrentIsPreloadedLocation();
         if (isPreloadedLocation) {
-            //GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(1, currentPreloadLocationId);
             GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(1, locationId);
             currentMisplacedScannedItemCount = (int) GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT.simpleQueryForLong();
         } else {
@@ -557,11 +556,150 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_inventory:
+            case R.id.action_remove_all:
+                if (true || getCurrentLocationId() >= 0) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setCancelable(true);
+                    builder.setTitle("Clear Inventory");
+                    builder.setMessage(
+                            "Are you sure you want to clear this inventory?\n" +
+                            "\n" +
+                            "This will not remove preloaded items and locations"
+                    );
+                    builder.setNegativeButton("no", null);
+                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (saveTask != null) {
+                                return;
+                            }
+
+                            changedSinceLastArchive = true;
+
+                            //int deletedCount = db.delete(ItemTable.NAME, "1", null);
+                            //db.delete(ItemTable.NAME, null, null);
+                            //db.delete(LocationTable.NAME, null, null);
+
+                            db.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
+                            db.execSQL("CREATE TABLE " + ScannedItemTable.TABLE_CREATION);
+
+                            db.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.NAME);
+                            db.execSQL("CREATE TABLE " + ScannedLocationTable.TABLE_CREATION);
+
+                            //if (itemCount + containerCount != deletedCount)
+                            //Log.v(TAG, "Detected inconsistencies with number of items while deleting");
+
+                            locationRecyclerView.setSelectedItem(-1);
+                            asyncRefreshLocations();
+                            updateInfo();
+                            Toast.makeText(PreloadInventoryActivity.this, "Inventory cleared", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    builder.create().show();
+                } else {
+                    Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            case R.id.action_save_to_file:
+                if (itemRecyclerAdapter.getItemCount() <= 0) {
+                    Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                        //Toast.makeText(this, "Write external storage permission is required for this", Toast.LENGTH_SHORT).show();
+                        ActivityCompat.requestPermissions(this, new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                        return true;
+                    }
+                }
+
+                if (saveTask == null) {
+                    preSave();
+                    archiveDatabase();
+                    (savingToast = Toast.makeText(this, "Saving...", Toast.LENGTH_SHORT)).show();
+                    saveTask = getSaveToFileTask().execute();
+                } else {
+                    saveTask.cancel(false);
+                    postSave();
+                }
+
+                return true;
+            case R.id.action_cancel_save:
+                if (saveTask != null) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setCancelable(true);
+                    builder.setTitle("Cancel Save");
+                    builder.setMessage("Are you sure you want to stop saving this file?");
+                    builder.setNegativeButton("no", null);
+                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (saveTask != null && !saveTask.isCancelled())
+                                saveTask.cancel(false);
+                        }
+                    });
+                    builder.create().show();
+                } else {
+                    postSave();
+                }
+                return true;
+            case R.id.action_continuous:
+                try {
+                    if (!item.isChecked()){
+                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    } else {
+                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+                    }
+                    item.setChecked(!item.isChecked());
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    item.setChecked(false);
+                    Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            case R.id.action_locations:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setCancelable(true);
+                builder.setTitle("Switch mode");
+                builder.setMessage("Are you sure you want to switch to preloading locations");
+                builder.setNegativeButton("no", null);
+                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        startActivity(new Intent(PreloadInventoryActivity.this, PreloadLocationsActivity.class));
+                        finish();
+                    }
+                });
+                builder.create().show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void preSave() {
+        mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_continuous).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_locations).setVisible(false);
+        onPrepareOptionsMenu(mOptionsMenu);
+    }
+
+    private void postSave() {
+        saveTask = null;
+        progressBar.setProgress(0);
+        mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_continuous).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_locations).setVisible(true);
+        onPrepareOptionsMenu(mOptionsMenu);
+    }
+
+    private void archiveDatabase() {
+
     }
 
     private void initScanner() throws RemoteException {
@@ -615,7 +753,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         //Log.v(TAG, "Updating info");
         TextView scannedItemsTextView = findViewById(R.id.items_scanned);
         TextView misplacedItemsTextView = findViewById(R.id.misplaced_items_text_view);
-        if (locationRecyclerView.getSelectedLocation() < 0) {
+        if (locationRecyclerView.getSelectedItem() < 0) {
             scannedItemsTextView.setText("-");
             misplacedItemsTextView.setText("-");
         } else {
@@ -631,7 +769,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
     public void readFileIntoPreloadDatabase() {
         try {
-            LineNumberReader lineReader = new LineNumberReader(new FileReader(String.format("%s/data.txt", PreloadInventoryActivity.INPUT_PATH.getAbsolutePath())));
+            LineNumberReader lineReader = new LineNumberReader(new FileReader(inputFile));
             String line;
             String[] elements;
             long currentLocationId = -1;
@@ -810,7 +948,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             isPreloaded = cursor.getInt(cursor.getColumnIndex("is_preloaded")) != 0;
             barcode = cursor.getString(cursor.getColumnIndex("barcode"));
             description = cursor.getString(cursor.getColumnIndex("description"));
-            isSelected = getAdapterPosition() == locationRecyclerView.getSelectedLocation();
+            isSelected = getAdapterPosition() == locationRecyclerView.getSelectedItem();
 
             if (isSelected) {
                 selectedLocationId = id;
@@ -1080,7 +1218,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         }
     }
 
-    @SuppressLint("StaticFieldLeak")
     private void scanBarcode(final String barcode) {
         if (isSaving) {
             vibrate(300);
@@ -1088,9 +1225,15 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             return;
         }
 
-        //new ScanBarcodeTask().execute(db, this, barcode);
-        new AsyncTask<Object, Void, SparseArray<Object>>() {
+        new AsyncTask<SparseArray<Object>, Void, SparseArray<Object>>() {
             private final String TAG = this.getClass().getSimpleName();
+
+            class ParameterKeys {
+                static final int ROW_ID = 0;
+                static final int RESULT_TYPE = 1;
+                static final int BARCODE = 2;
+                static final int REFRESH_LIST = 3;
+            }
 
             class ResultKeys {
                 static final int ROW_ID = 0;
@@ -1112,7 +1255,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             }
 
             @Override
-            protected SparseArray<Object> doInBackground(Object... objects) {
+            protected SparseArray<Object> doInBackground(SparseArray<Object>... voids) {
                 if (isLocation(barcode)) {
                     boolean isPreloaded;
                     long locationId;
@@ -1159,9 +1302,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
                     GET_DUPLICATES_OF_SCANNED_ITEM_IN_LOCATION_STATEMENT.bindString(1, barcode);
                     GET_DUPLICATES_OF_SCANNED_ITEM_IN_LOCATION_STATEMENT.bindString(2, selectedLocationBarcode);
-                    if (!(GET_DUPLICATES_OF_SCANNED_ITEM_IN_LOCATION_STATEMENT.simpleQueryForLong() > 0)) {
+                    if (GET_DUPLICATES_OF_SCANNED_ITEM_IN_LOCATION_STATEMENT.simpleQueryForLong() > 0) {
                         SparseArray<Object> results = new SparseArray<>();
                         results.append(ResultKeys.RESULT_TYPE, ResultValue.DUPLICATE);
+                        return results;
                     }
 
                     if (isItem(barcode)) {
@@ -1271,15 +1415,293 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             Toast.makeText(PreloadInventoryActivity.this, String.format("Error adding location \"%s\" to the list", barcode), Toast.LENGTH_SHORT).show();
                         } else {
                             if (refreshList)
-                                asyncRefreshItemsScrollToBarcode(barcode);
+                                asyncRefreshItemsScrollToItem(barcode);
                             else
                                 asyncScrollToItem(barcode);
                         }
                         break;
                 }
-                //todo finish
             }
         }.execute();
         //todo finish
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private AsyncTask<SparseArray<Object>, Integer, SparseArray<Object>> getSaveToFileTask() {
+        //noinspection unchecked
+        return new AsyncTask<SparseArray<Object>, Integer, SparseArray<Object>>() {
+            class ResultKeys {
+                static final int RESULT_TYPE = 0;
+                static final int MESSAGE = 0;
+            }
+
+            class ResultValue {
+                static final int IO_EXCEPTION = -7;
+                static final int FILE_NOT_FOUND = -7;
+                static final int RENAME_FAILED = -6;
+                static final int DELETE_FAILED = -5;
+                static final int VERIFICATION_FAILED = -4;
+                static final int LOCATION_NOT_FOUND = -3;
+                static final int CURSOR_ERROR = -2;
+                static final int SAVE_CANCELED = -1;
+                static final int SAVED_TO_FILE = 1;
+            }
+
+            @Override
+            protected SparseArray<Object> doInBackground(SparseArray<Object>... args) {
+                Cursor itemCursor = db.rawQuery("SELECT " + ScannedItemTable.Keys.BARCODE + ", " + ScannedItemTable.Keys.LOCATION_ID + ", " + ScannedItemTable.Keys.DATE_TIME + " FROM " + ScannedItemTable.NAME + " ORDER BY " + ScannedItemTable.Keys.ID + " ASC;",null);
+                int itemBarcodeIndex = itemCursor.getColumnIndex(PreloadInventoryDatabase.BARCODE);
+                int itemLocationIdIndex = itemCursor.getColumnIndex(PreloadInventoryDatabase.LOCATION_ID);
+                int itemDateTimeIndex = itemCursor.getColumnIndex(PreloadInventoryDatabase.DATE_TIME);
+
+                Cursor locationCursor = db.rawQuery("SELECT " + ScannedLocationTable.Keys.ID + ", " + ScannedLocationTable.Keys.BARCODE + ", " + ScannedLocationTable.Keys.DATE_TIME + " FROM " + ScannedLocationTable.NAME + " ORDER BY " + ScannedLocationTable.Keys.ID + " ASC;", null);
+
+                int locationIdIndex = locationCursor.getColumnIndex(PreloadInventoryDatabase.ID);
+                int locationBarcodeIndex = locationCursor.getColumnIndex(PreloadInventoryDatabase.BARCODE);
+                int locationDateTimeIndex = locationCursor.getColumnIndex(PreloadInventoryDatabase.DATE_TIME);
+
+                if (!itemCursor.moveToFirst() || !locationCursor.moveToFirst()) {
+                    SparseArray<Object> results = new SparseArray<>();
+                    results.append(ResultKeys.RESULT_TYPE, ResultValue.CURSOR_ERROR);
+                    return results;
+                }
+
+                int lineIndex = -1;
+                int progress = 0;
+                int tempProgress;
+                int maxProgress = progressBar.getMax();
+
+                try {
+                    //noinspection ResultOfMethodCallIgnored
+                    OUTPUT_PATH.mkdirs();
+                    final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", OUTPUT_PATH);
+                    PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
+
+                    lineIndex = 0;
+                    int tempLocation;
+                    int itemIndex = 0;
+                    int totalItemCount = itemCursor.getCount() + 1;
+                    int currentLocationId = -1;
+
+                    String tempText = BuildConfig.APPLICATION_ID.split("\\.")[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+                    printStream.print(tempText);
+                    printStream.flush();
+                    lineIndex++;
+
+                    while (!itemCursor.isAfterLast()) {
+                        if (isCancelled()) {
+                            SparseArray<Object> results = new SparseArray<>(2);
+                            results.append(ResultKeys.RESULT_TYPE, ResultValue.SAVE_CANCELED);
+                            results.append(ResultKeys.MESSAGE, "Save canceled");
+                            return results;
+                        }
+
+                        tempProgress = (int) (((((float) itemIndex) / totalItemCount) / 1.5) * maxProgress);
+                        if (progress != tempProgress) {
+                            publishProgress(tempProgress);
+                            progress = tempProgress;
+                        }
+
+                        tempLocation = itemCursor.getInt(itemLocationIdIndex);
+                        if (tempLocation != currentLocationId) {
+                            currentLocationId = tempLocation;
+
+                            while (locationCursor.getInt(locationIdIndex) != currentLocationId) {
+                                locationCursor.moveToNext();
+                                if (locationCursor.isAfterLast()) {
+                                    SparseArray<Object> results = new SparseArray<>(2);
+                                    results.append(ResultKeys.RESULT_TYPE, ResultValue.LOCATION_NOT_FOUND);
+                                    results.append(ResultKeys.MESSAGE, String.format("Location of \"%s\" does not exist", itemCursor.getString(itemBarcodeIndex).trim()));
+                                    return results;
+                                }
+                            }
+
+                            printStream.print(locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex) + "\r\n");
+
+                            printStream.flush();
+                            lineIndex++;
+                        }
+
+                        tempText = String.format("%s|%s\r\n", itemCursor.getString(itemBarcodeIndex), itemCursor.getString(itemDateTimeIndex));
+                        printStream.print(tempText);
+
+                        printStream.flush();
+                        itemCursor.moveToNext();
+                        lineIndex++;
+                        itemIndex++;
+                    }
+
+                    lineIndex = -1;
+                    printStream.close();
+
+                    itemCursor.moveToFirst();
+                    locationCursor.moveToFirst();
+
+                    BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
+                    String line;
+                    currentLocationId = -1;
+                    itemIndex = 0;
+
+                    br.readLine();
+                    lineIndex = 1;
+
+                    while (!itemCursor.isAfterLast()) {
+                        if (isCancelled()){
+                            SparseArray<Object> results = new SparseArray<>(2);
+                            results.append(ResultKeys.RESULT_TYPE, ResultValue.SAVE_CANCELED);
+                            results.append(ResultKeys.MESSAGE, "Save canceled");
+                            return results;
+                        }
+
+                        tempProgress = (int) (((((float) itemIndex / totalItemCount) / 3) + (2 / 3f)) * maxProgress);
+                        if (progress != tempProgress) {
+                            publishProgress(tempProgress);
+                            progress = tempProgress;
+                        }
+
+                        line = br.readLine();
+                        tempLocation = itemCursor.getInt(itemLocationIdIndex);
+
+                        if (tempLocation != currentLocationId) {
+                            currentLocationId = tempLocation;
+
+                            while (locationCursor.getInt(locationIdIndex) != currentLocationId) {
+                                locationCursor.moveToNext();
+                                if (locationCursor.isAfterLast()) {
+                                    SparseArray<Object> results = new SparseArray<>(2);
+                                    results.append(ResultKeys.RESULT_TYPE, ResultValue.LOCATION_NOT_FOUND);
+                                    results.append(ResultKeys.MESSAGE, String.format("Location of \"%s\" does not exist", itemCursor.getString(itemBarcodeIndex).trim()));
+                                    return results;
+                                }
+                            }
+
+                            tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
+                            if (!tempText.equals(line)) {
+                                Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
+                                        "\tExpected String: " + tempText + "\n" +
+                                        "\tString in file: " + line);
+
+                                SparseArray<Object> results = new SparseArray<>(2);
+                                results.append(ResultKeys.RESULT_TYPE, ResultValue.VERIFICATION_FAILED);
+                                results.append(ResultKeys.MESSAGE, "There was a problem verifying the output file");
+                                return results;
+
+                            }
+
+                            line = br.readLine();
+                            lineIndex++;
+                        }
+
+                        tempText = itemCursor.getString(itemBarcodeIndex) + "|" + itemCursor.getString(itemDateTimeIndex);
+                        if (!tempText.equals(line)) {
+                            Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
+                                    "Expected String: " + tempText + "\n" +
+                                    "String in file: " + line);
+
+                            SparseArray<Object> results = new SparseArray<>(2);
+                            results.append(ResultKeys.RESULT_TYPE, ResultValue.VERIFICATION_FAILED);
+                            results.append(ResultKeys.MESSAGE, "There was a problem verifying the output file");
+                            return results;
+                        }
+                        itemCursor.moveToNext();
+                        lineIndex++;
+                        itemIndex++;
+                    }
+
+                    lineIndex = -1;
+
+                    itemCursor.close();
+                    locationCursor.close();
+                    br.close();
+
+                    if (outputFile.exists() && !outputFile.delete()) {
+                        //noinspection ResultOfMethodCallIgnored
+                        TEMP_OUTPUT_FILE.delete();
+                        Log.e(TAG, "Could not delete existing output file");
+
+                        SparseArray<Object> results = new SparseArray<>(2);
+                        results.append(ResultKeys.RESULT_TYPE, ResultValue.DELETE_FAILED);
+                        results.append(ResultKeys.MESSAGE, "Could not delete existing output file");
+                        return results;
+                    }
+
+                    if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
+                        //noinspection ResultOfMethodCallIgnored
+                        TEMP_OUTPUT_FILE.delete();
+                        Log.e(TAG, String.format("Could not rename temp file to \"%s\"", outputFile.getName()));
+
+                        SparseArray<Object> results = new SparseArray<>(2);
+                        results.append(ResultKeys.RESULT_TYPE, ResultValue.RENAME_FAILED);
+                        results.append(ResultKeys.MESSAGE, String.format("Could not rename temp file to \"%s\"", outputFile.getName()));
+                        return results;
+                    }
+                } catch (FileNotFoundException e){
+                    if (lineIndex == -1) {
+                        Log.e(TAG, "FileNotFoundException occurred outside of while loops: " + e.getMessage());
+                        e.printStackTrace();
+
+                        SparseArray<Object> results = new SparseArray<>(2);
+                        results.append(ResultKeys.RESULT_TYPE, ResultValue.FILE_NOT_FOUND);
+                        results.append(ResultKeys.MESSAGE, "FileNotFoundException occurred while saving");
+                        return results;
+                    } else {
+                        Log.e(TAG, "FileNotFoundException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
+                        e.printStackTrace();
+
+                        SparseArray<Object> results = new SparseArray<>(2);
+                        results.append(ResultKeys.RESULT_TYPE, ResultValue.FILE_NOT_FOUND);
+                        results.append(ResultKeys.MESSAGE, String.format(Locale.US, "FileNotFoundException occurred at line %d in file while saving", lineIndex));
+                        return results;
+                    }
+                } catch (IOException e){
+                    if (lineIndex == -1) {
+                        Log.e(TAG, "IOException occurred outside of while loops: " + e.getMessage());
+                        e.printStackTrace();
+
+                        SparseArray<Object> results = new SparseArray<>(2);
+                        results.append(ResultKeys.RESULT_TYPE, ResultValue.IO_EXCEPTION);
+                        results.append(ResultKeys.MESSAGE, "IOException occurred while saving");
+                        return results;
+                    } else {
+                        Log.e(TAG, "IOException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
+                        e.printStackTrace();
+
+                        SparseArray<Object> results = new SparseArray<>(2);
+                        results.append(ResultKeys.RESULT_TYPE, ResultValue.IO_EXCEPTION);
+                        results.append(ResultKeys.MESSAGE, String.format(Locale.US, "IOException occurred at line %d in file while saving", lineIndex));
+                        return results;
+                    }
+                }
+
+                SparseArray<Object> results = new SparseArray<>(2);
+                results.append(ResultKeys.RESULT_TYPE, ResultValue.SAVED_TO_FILE);
+                results.append(ResultKeys.MESSAGE, "Saved to file");
+                return results;
+            }
+
+            @Override
+            protected void onPostExecute(SparseArray<Object> results) {
+                assert results != null: "Null value passed to onPostExecute()";
+
+                int resultType = (int) results.get(ResultKeys.RESULT_TYPE);
+                String message = (String) results.get(ResultKeys.MESSAGE);
+                Toast.makeText(PreloadInventoryActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            protected void onProgressUpdate(Integer... values) {
+                assert values != null: "Null value passed to onProgressUpdate()";
+                progressBar.setProgress(values[0]);
+            }
+
+            @Override
+            protected void onCancelled(SparseArray<Object> results) {
+                assert results != null: "Null value passed to onCancelled()";
+
+                int resultType = (int) results.get(ResultKeys.RESULT_TYPE);
+                String message = (String) results.get(ResultKeys.MESSAGE);
+                Toast.makeText(PreloadInventoryActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        };
     }
 }
