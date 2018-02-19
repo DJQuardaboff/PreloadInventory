@@ -4,7 +4,7 @@ public class PreloadInventoryDatabase {
     public static final String FILE_NAME = "preload_inventory.db";
     public static final String DIRECTORY = "Preload/Inventory";
     public static final String ARCHIVE_DIRECTORY = "Archives";
-    public static final String ID = "id";
+    public static final String ID = "_id";
     public static final String TAGS = "tags";
     public static final String BARCODE = "barcode";
     public static final String LOCATION_ID = "location_id";

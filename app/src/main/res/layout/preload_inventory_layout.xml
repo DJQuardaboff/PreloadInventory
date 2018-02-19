@@ -24,7 +24,7 @@
         app:layout_constraintVertical_chainStyle="spread"
         app:layout_constraintVertical_weight="1">
 
-        <android.support.v7.widget.RecyclerView
+        <com.porterlee.preloadinventory.SelectableRecyclerView
             android:id="@+id/location_list_view"
             android:layout_width="match_parent"
             android:layout_height="0dp"
