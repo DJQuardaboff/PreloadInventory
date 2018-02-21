@@ -599,6 +599,14 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
         registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
         loadCurrentScannerOptions();
+
+        if (iScanner != null) {
+            try {
+                iScanner.aDecodeSetTriggerOn(0);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
