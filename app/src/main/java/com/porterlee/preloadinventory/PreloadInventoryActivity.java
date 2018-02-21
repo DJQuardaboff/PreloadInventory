@@ -387,8 +387,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         new AsyncTask<Void, Void, Pair<Cursor, Integer>>() {
             @Override
             protected Pair<Cursor, Integer> doInBackground(Void... voids) {
-                String currentLocationIdString = String.valueOf(getCurrentLocationId());
-                Cursor cursor = db.rawQuery(getCurrentIsPreloadedLocation() ? PRELOADED_ITEM_LIST_QUERY : SCANNED_ITEM_LIST_QUERY, getCurrentIsPreloadedLocation() ? new String[] {currentLocationIdString, currentLocationIdString, currentLocationIdString} : new String[] {currentLocationIdString});
+                String currentLocationIdString = String.valueOf(selectedLocationId);
+                Cursor cursor = db.rawQuery(selectedLocationIsPreloaded ? PRELOADED_ITEM_LIST_QUERY : SCANNED_ITEM_LIST_QUERY, selectedLocationIsPreloaded ? new String[] {currentLocationIdString, currentLocationIdString, currentLocationIdString} : new String[] {currentLocationIdString});
                 int position = -1;
 
                 if (barcode != null && cursor.moveToFirst()) {
@@ -510,24 +510,20 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         updateInfo();
     }
 
-    private long getCurrentLocationId() {
-        return selectedLocationId;
-    }
+    @Override
+    public void onUpdate(Integer progress) {
 
-    private boolean getCurrentIsPreloadedLocation() {
-        return selectedLocationIsPreloaded;
     }
 
     public void refreshCurrentPreloadedItemCount() {
-        long locationId = getCurrentLocationId();
-        if (locationId < 0) {
+        if (selectedLocationId < 0) {
             currentPreloadedItemCount = 0;
             return;
         }
-        boolean isPreloadedLocation = getCurrentIsPreloadedLocation();
-        if (isPreloadedLocation) {
-            GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(1, locationId);
-            GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(2, locationId);
+
+        if (selectedLocationIsPreloaded) {
+            GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(1, selectedLocationId);
+            GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(2, selectedLocationId);
             currentPreloadedItemCount = (int) GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT.simpleQueryForLong();
         } else {
             currentPreloadedItemCount = 0;
@@ -535,14 +531,13 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void refreshCurrentMisplacedScannedItemCount() {
-        long locationId = getCurrentLocationId();
-        if (locationId < 0) {
+        if (selectedLocationId < 0) {
             currentMisplacedScannedItemCount = 0;
             return;
         }
-        boolean isPreloadedLocation = getCurrentIsPreloadedLocation();
-        if (isPreloadedLocation) {
-            GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(1, locationId);
+
+        if (selectedLocationIsPreloaded) {
+            GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT.bindLong(1, selectedLocationId);
             currentMisplacedScannedItemCount = (int) GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT.simpleQueryForLong();
         } else {
             currentMisplacedScannedItemCount = 0;
@@ -550,41 +545,34 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void refreshCurrentScannedAndPreloadedItemCount() {
-        long locationId = getCurrentLocationId();
-        if (locationId < 0) {
+        if (selectedLocationId < 0) {
             currentScannedAndPreloadedItemCount = 0;
             return;
         }
-        boolean isPreloadedLocation = getCurrentIsPreloadedLocation();
-        if (isPreloadedLocation) {
-            //GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, currentPreloadLocationId);
-            GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, locationId);
-            //GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(2, currentPreloadLocationId);
-            GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(2, locationId);
-            //GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(3, currentPreloadLocationId);
-            GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(3, locationId);
+
+        if (selectedLocationIsPreloaded) {
+            GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, selectedLocationId);
+            GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(2, selectedLocationId);
+            GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(3, selectedLocationId);
             currentScannedAndPreloadedItemCount = (int) GET_SCANNED_AND_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.simpleQueryForLong();
         } else {
-            GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT.bindLong(1, locationId);
+            GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT.bindLong(1, selectedLocationId);
             currentScannedAndPreloadedItemCount = (int) GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT.simpleQueryForLong();
         }
     }
 
     private void refreshCurrentNotMisplacedScannedItemCount() {
-        long locationId = getCurrentLocationId();
-        if (locationId < 0) {
+        if (selectedLocationId < 0) {
             currentNotMisplacedScannedItemCount = 0;
             return;
         }
-        boolean isPreloadedLocation = getCurrentIsPreloadedLocation();
-        if (isPreloadedLocation) {
-            //GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.bindLong(1, currentPreloadLocationId);
-            GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.bindLong(1, locationId);
-            //GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.bindLong(2, currentPreloadLocationId);
-            GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.bindLong(2, locationId);
+
+        if (selectedLocationIsPreloaded) {
+            GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.bindLong(1, selectedLocationId);
+            GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.bindLong(2, selectedLocationId);
             currentNotMisplacedScannedItemCount = (int) GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT.simpleQueryForLong();
         } else {
-            GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT.bindLong(1, locationId);
+            GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT.bindLong(1, selectedLocationId);
             currentNotMisplacedScannedItemCount = (int) GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT.simpleQueryForLong();
         }
     }
@@ -842,7 +830,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             scannedItemsTextView.setText("-");
             misplacedItemsTextView.setText("-");
         } else {
-            if (getCurrentIsPreloadedLocation()) {
+            if (selectedLocationIsPreloaded) {
                 scannedItemsTextView.setText(getString(R.string.items_scanned_format_string, currentNotMisplacedScannedItemCount, currentPreloadedItemCount));
                 misplacedItemsTextView.setText(String.valueOf(currentMisplacedScannedItemCount));
             } else {
