@@ -20,11 +20,11 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String[] REQUIRED_PERMISSIONS = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SCANNER_RESULT_RECEIVER, android.Manifest.permission.BROADCAST_STICKY};
-    static final String FILE_NAME_KEY = "file_name";
-    static final String DUPLICATE_BARCODE_TAG = "D";
-    static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
-    static final int MAX_ITEM_HISTORY_INCREASE = 25;
-    static final int ERROR_COLOR = Color.RED;
+    public static final String FILE_NAME_KEY = "file_name";
+    public static final String DUPLICATE_BARCODE_TAG = "D";
+    public static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
+    public static final int MAX_ITEM_HISTORY_INCREASE = 25;
+    public static final int ERROR_COLOR = Color.RED;
     private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override

@@ -34,4 +34,5 @@ dependencies {
     //implementation project(':device.nfc')
     implementation project(':device.scanner')
     //implementation project(':device.service')
+    compile 'org.jetbrains:annotations-java5:15.0'
 }

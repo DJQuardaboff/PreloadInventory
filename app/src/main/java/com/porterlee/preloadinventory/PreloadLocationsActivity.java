@@ -40,7 +40,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -53,7 +52,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Random;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
@@ -62,8 +60,6 @@ import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
 import static com.porterlee.preloadinventory.MainActivity.DATE_FORMAT;
-import static com.porterlee.preloadinventory.MainActivity.DUPLICATE_BARCODE_TAG;
-import static com.porterlee.preloadinventory.MainActivity.FILE_NAME_KEY;
 import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCREASE;
 
 public class PreloadLocationsActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
