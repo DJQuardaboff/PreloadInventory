@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    tools:context="com.porterlee.preloadinventory.PreloadInventoryActivity">
+    tools:context="com.porterlee.preload.PreloadInventoryActivity">
 
     <LinearLayout
         android:id="@+id/info_layout"
@@ -24,7 +24,7 @@
         app:layout_constraintVertical_chainStyle="spread"
         app:layout_constraintVertical_weight="1">
 
-        <com.porterlee.preloadinventory.SelectableRecyclerView
+        <com.porterlee.preload.SelectableRecyclerView
             android:id="@+id/location_list_view"
             android:layout_width="match_parent"
             android:layout_height="0dp"

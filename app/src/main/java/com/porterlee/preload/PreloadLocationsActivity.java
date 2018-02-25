@@ -1,4 +1,4 @@
-package com.porterlee.preloadinventory;
+package com.porterlee.preload;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -44,7 +44,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.porterlee.preloadinventory.PreloadLocationsDatabase.LocationTable;
+import com.porterlee.preload.PreloadLocationsDatabase.LocationTable;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -59,8 +59,8 @@ import device.scanner.ScanConst;
 import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static com.porterlee.preloadinventory.MainActivity.DATE_FORMAT;
-import static com.porterlee.preloadinventory.MainActivity.MAX_ITEM_HISTORY_INCREASE;
+import static com.porterlee.preload.MainActivity.DATE_FORMAT;
+import static com.porterlee.preload.MainActivity.MAX_ITEM_HISTORY_INCREASE;
 
 public class PreloadLocationsActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);

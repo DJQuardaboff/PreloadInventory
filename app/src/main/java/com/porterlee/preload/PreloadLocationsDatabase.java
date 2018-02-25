@@ -1,4 +1,4 @@
-package com.porterlee.preloadinventory;
+package com.porterlee.preload;
 
 public class PreloadLocationsDatabase {
     public static final String FILE_NAME = "preload_locations.db";

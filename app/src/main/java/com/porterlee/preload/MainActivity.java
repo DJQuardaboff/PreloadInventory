@@ -1,4 +1,4 @@
-package com.porterlee.preloadinventory;
+package com.porterlee.preload;
 
 import android.content.Context;
 import android.content.Intent;

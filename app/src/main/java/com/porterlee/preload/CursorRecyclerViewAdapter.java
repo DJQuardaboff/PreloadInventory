@@ -1,4 +1,4 @@
-package com.porterlee.preloadinventory;
+package com.porterlee.preload;
 
 import android.database.Cursor;
 import android.database.DataSetObserver;

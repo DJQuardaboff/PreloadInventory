@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.porterlee.preloadinventory">
+    package="com.porterlee.preload">
 
     <permission
-        android:name="com.porterlee.preloadinventory.permission.SCANNER_RESULT_RECEIVER"
+        android:name="com.porterlee.preload.permission.SCANNER_RESULT_RECEIVER"
         android:protectionLevel="normal"/>
 
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -20,7 +20,7 @@
         android:supportsRtl="true">
 
         <activity
-            android:name="com.porterlee.preloadinventory.MainActivity"
+            android:name="com.porterlee.preload.MainActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/MainTheme"
@@ -33,7 +33,7 @@
         </activity>
 
         <activity
-            android:name="com.porterlee.preloadinventory.PreloadLocationsActivity"
+            android:name="com.porterlee.preload.PreloadLocationsActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
@@ -46,7 +46,7 @@
         </activity>
 
         <activity
-            android:name="com.porterlee.preloadinventory.PreloadInventoryActivity"
+            android:name="com.porterlee.preload.PreloadInventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
