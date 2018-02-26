@@ -33,7 +33,7 @@
         </activity>
 
         <activity
-            android:name="com.porterlee.preload.PreloadLocationsActivity"
+            android:name="com.porterlee.preload.location.PreloadLocationsActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"
@@ -46,7 +46,7 @@
         </activity>
 
         <activity
-            android:name="com.porterlee.preload.PreloadInventoryActivity"
+            android:name="com.porterlee.preload.inventory.PreloadInventoryActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/PreloadTheme"

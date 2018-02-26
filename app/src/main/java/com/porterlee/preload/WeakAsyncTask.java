@@ -3,7 +3,6 @@ package com.porterlee.preload;
 import android.os.AsyncTask;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 
 public class WeakAsyncTask<Params, Progress, Result> extends AsyncTask<Params, Progress, Result> {
     private volatile WeakReference<AsyncTaskListeners<Params, Progress, Result>> mListeners;
@@ -45,33 +44,40 @@ public class WeakAsyncTask<Params, Progress, Result> extends AsyncTask<Params, P
     }
 
     public static abstract class OnPreExecuteListener {
-        abstract void onPreExecute();
+        public abstract void onPreExecute();
     }
 
     public static abstract class OnDoInBackgroundListener<Params, Progress, Result> {
         private volatile WeakAsyncTask<Params, Progress, Result> task;
 
-        abstract Result onDoInBackground(Params[] params);
+        public abstract Result onDoInBackground(Params[] params);
 
         @SafeVarargs
-        final void publishProgress(Progress... progress) {
-            task.publishProgress(progress);
+        protected final void publishProgress(Progress... progress) {
+            if (task != null)
+                task.publishProgress(progress);
+            else
+                throw new NullPointerException("Task to call publishProgress() on is null");
         }
-        final boolean isCancelled() {
-            return task.isCancelled();
+
+        protected final boolean isCancelled() {
+            if (task != null)
+                return task.isCancelled();
+            else
+                throw new NullPointerException("Task to call isCancelled() on is null");
         }
     }
 
     public static abstract class OnProgressUpdateListener<Progress> {
-        abstract void onProgressUpdate(Progress[] progress);
+        public abstract void onProgressUpdate(Progress[] progress);
     }
 
     public static abstract class OnPostExecuteListener<Result> {
-        abstract void onPostExecute(Result result);
+        public abstract void onPostExecute(Result result);
     }
 
     public static abstract class OnCancelledListener<Result> {
-        abstract void onCancelled(Result result);
+        public abstract void onCancelled(Result result);
     }
 
     public static class AsyncTaskListeners<Params, Progress, Result> {

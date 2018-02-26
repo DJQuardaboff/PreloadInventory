@@ -1,4 +1,4 @@
-package com.porterlee.preload;
+package com.porterlee.preload.location;
 
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
@@ -44,7 +44,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.porterlee.preload.PreloadLocationsDatabase.LocationTable;
+import com.porterlee.preload.location.PreloadLocationsDatabase.LocationTable;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -62,8 +62,9 @@ import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 import static com.porterlee.preload.MainActivity.DATE_FORMAT;
 import static com.porterlee.preload.MainActivity.MAX_ITEM_HISTORY_INCREASE;
 
+
 public class PreloadLocationsActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
+    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
     private int maxProgress;
     private SharedPreferences sharedPreferences;

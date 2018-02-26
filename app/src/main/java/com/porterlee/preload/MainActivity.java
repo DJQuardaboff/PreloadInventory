@@ -13,6 +13,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.porterlee.preload.inventory.PreloadInventoryActivity;
+import com.porterlee.preload.location.PreloadLocationsActivity;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;

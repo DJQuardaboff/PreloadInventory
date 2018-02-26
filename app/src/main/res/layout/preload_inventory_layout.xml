@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    tools:context="com.porterlee.preload.PreloadInventoryActivity">
+    tools:context="com.porterlee.preload.inventory.PreloadInventoryActivity">
 
     <LinearLayout
         android:id="@+id/info_layout"
