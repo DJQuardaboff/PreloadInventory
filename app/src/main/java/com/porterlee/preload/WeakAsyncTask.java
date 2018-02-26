@@ -11,7 +11,6 @@ public class WeakAsyncTask<Params, Progress, Result> extends AsyncTask<Params, P
     public WeakAsyncTask(AsyncTaskListeners<Params, Progress, Result> listeners) {
         listeners.mOnDoInBackgroundListener.task = this;
         mListeners = new WeakReference<>(listeners);
-        ArrayList
     }
 
     @Override
