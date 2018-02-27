@@ -44,6 +44,9 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.porterlee.preload.BuildConfig;
+import com.porterlee.preload.Manifest;
+import com.porterlee.preload.R;
 import com.porterlee.preload.location.PreloadLocationsDatabase.LocationTable;
 
 import java.io.BufferedReader;

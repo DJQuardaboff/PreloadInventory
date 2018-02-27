@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.INPUT_PATH.mkdirs();
 
+        return new Intent(context, PreloadInventoryActivity.class);
+        /*
         File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
         File[] fileInputs = PreloadInventoryActivity.INPUT_PATH.listFiles();
 
@@ -70,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             intent = new Intent(context, PreloadLocationsActivity.class);
             intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
             return intent;
-        }
+        }*/
     }
 
     private boolean askForPermission() {
@@ -113,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     private void startApplication() {
         try {
-            startActivity(getPreloadIntent(MainActivity.this));
+            startActivity(getPreloadIntent(this));
             finish();
         } catch (IOException e) {
             Toast.makeText(this, "Could not open files on shared memory. Exiting...", Toast.LENGTH_SHORT).show();

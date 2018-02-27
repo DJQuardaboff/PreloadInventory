@@ -34,7 +34,6 @@ import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.Pair;
-import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -79,9 +78,9 @@ import com.porterlee.preload.inventory.PreloadInventoryDatabase.PreloadedContain
 import com.porterlee.preload.inventory.PreloadInventoryDatabase.PreloadedLocationTable;
 
 public class PreloadInventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    private static final String PRELOADED_ITEM_LIST_QUERY = "SELECT _id, scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + PreloadInventoryDatabase.ScannedItemTable.Keys.ID + " AS _id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.ID + " AS scanned_item_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + PreloadInventoryDatabase.ScannedItemTable.Keys.TAGS + " AS tags, " + PreloadInventoryDatabase.ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND preload_location_id = ? UNION SELECT " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.ID + " AS _id, -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadInventoryDatabase.PreloadedContainerTable.NAME + " WHERE preload_location_id = ? UNION SELECT " + PreloadInventoryDatabase.PreloadedItemTable.Keys.ID + " AS _id, -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.ID + " AS preload_item_id, -1 AS preload_container_id, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.BARCODE + " AS barcode, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.CASE_NUMBER + " AS case_number, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.ITEM_NUMBER + " AS item_number, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.PACKAGE + " AS packaging, " + PreloadInventoryDatabase.PreloadedItemTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadInventoryDatabase.PreloadedItemTable.NAME + " WHERE preload_location_id = ? ) ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC";
-    private static final String SCANNED_ITEM_LIST_QUERY = "SELECT " + PreloadInventoryDatabase.ScannedItemTable.Keys.ID + " AS _id, " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + PreloadInventoryDatabase.ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + PreloadInventoryDatabase.ScannedItemTable.Keys.TAGS + " AS tags, " + PreloadInventoryDatabase.ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND scanned_location_id = ? ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC";
-    private static final String LOCATION_LIST_QUERY = "SELECT _id, is_preloaded, barcode, description FROM ( SELECT " + PreloadInventoryDatabase.PreloadedLocationTable.Keys.ID + " AS _id, " + PreloadInventoryDatabase.PreloadedLocationTable.Keys.ID + " AS sort, 1 AS is_preloaded, " + PreloadInventoryDatabase.PreloadedLocationTable.Keys.BARCODE + " AS barcode, " + PreloadInventoryDatabase.PreloadedLocationTable.Keys.DESCRIPTION + " AS description, 1 AS filter FROM " + PreloadInventoryDatabase.PreloadedLocationTable.NAME + " UNION SELECT MAX(" + PreloadInventoryDatabase.ScannedLocationTable.Keys.ID + ") AS _id, MIN(" + PreloadInventoryDatabase.ScannedLocationTable.Keys.ID + ") AS sort, 0 AS is_preloaded, " + PreloadInventoryDatabase.ScannedLocationTable.Keys.BARCODE + " AS barcode, NULL AS description, 0 AS filter FROM " + PreloadInventoryDatabase.ScannedLocationTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedLocationTable.Keys.PRELOAD_LOCATION_ID + " < 0 GROUP BY barcode ) WHERE _id NOT NULL ORDER BY filter, sort DESC";
+    private static final String PRELOADED_ITEM_LIST_QUERY = "SELECT _id, scanned_item_id, scanned_location_id, preload_location_id, preload_item_id, preload_container_id, barcode, case_number, item_number, packaging, description, tags, date_time FROM ( SELECT " + ScannedItemTable.Keys.ID + " AS _id, " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND preload_location_id = ? UNION SELECT " + PreloadedContainerTable.Keys.ID + " AS _id, -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, -1 AS preload_item_id, " + PreloadedContainerTable.Keys.ID + " AS preload_container_id, " + PreloadedContainerTable.Keys.BARCODE + " AS barcode, " + PreloadedContainerTable.Keys.CASE_NUMBER + " AS case_number, NULL AS item_number, NULL AS packaging, " + PreloadedContainerTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 1 AS format FROM " + PreloadedContainerTable.NAME + " WHERE preload_location_id = ? UNION SELECT " + PreloadedItemTable.Keys.ID + " AS _id, -1 AS scanned_item_id, -1 AS scanned_location_id, " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + PreloadedItemTable.Keys.ID + " AS preload_item_id, -1 AS preload_container_id, " + PreloadedItemTable.Keys.BARCODE + " AS barcode, " + PreloadedItemTable.Keys.CASE_NUMBER + " AS case_number, " + PreloadedItemTable.Keys.ITEM_NUMBER + " AS item_number, " + PreloadedItemTable.Keys.PACKAGE + " AS packaging, " + PreloadedItemTable.Keys.DESCRIPTION + " AS description, NULL AS tags, NULL AS date_time, 0 AS format FROM " + PreloadedItemTable.NAME + " WHERE preload_location_id = ? ) ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC";
+    private static final String SCANNED_ITEM_LIST_QUERY = "SELECT " + ScannedItemTable.Keys.ID + " AS _id, " + ScannedItemTable.Keys.ID + " AS scanned_item_id, " + ScannedItemTable.Keys.LOCATION_ID + " AS scanned_location_id, " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " AS preload_location_id, " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " AS preload_item_id, " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " AS preload_container_id, " + ScannedItemTable.Keys.BARCODE + " AS barcode, NULL AS case_number, NULL AS item_number, NULL AS packaging, NULL AS description, " + ScannedItemTable.Keys.TAGS + " AS tags, " + ScannedItemTable.Keys.DATE_TIME + " AS date_time, 0 AS format FROM " + ScannedItemTable.NAME + " WHERE preload_item_id < 0 AND preload_container_id < 0 AND scanned_location_id = ? ORDER BY format, scanned_item_id DESC, preload_item_id DESC, preload_container_id DESC";
+    private static final String LOCATION_LIST_QUERY = "SELECT _id, is_preloaded, barcode, description FROM ( SELECT " + PreloadedLocationTable.Keys.ID + " AS _id, " + PreloadedLocationTable.Keys.ID + " AS sort, 1 AS is_preloaded, " + PreloadedLocationTable.Keys.BARCODE + " AS barcode, " + PreloadedLocationTable.Keys.DESCRIPTION + " AS description, 1 AS filter FROM " + PreloadedLocationTable.NAME + " UNION SELECT MAX(" + ScannedLocationTable.Keys.ID + ") AS _id, MIN(" + ScannedLocationTable.Keys.ID + ") AS sort, 0 AS is_preloaded, " + ScannedLocationTable.Keys.BARCODE + " AS barcode, NULL AS description, 0 AS filter FROM " + ScannedLocationTable.NAME + " WHERE " + ScannedLocationTable.Keys.PRELOAD_LOCATION_ID + " < 0 GROUP BY barcode ) WHERE _id NOT NULL ORDER BY filter, sort DESC";
     public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
     public static final File INPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
     private static final String TAG = PreloadInventoryActivity.class.getSimpleName();
@@ -134,12 +133,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private final WeakAsyncTask.AsyncTaskListeners<Void, Float, Pair<String, String>> saveTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(null, new WeakAsyncTask.OnDoInBackgroundListener<Void, Float, Pair<String, String>>() {
         @Override
         public Pair<String, String> onDoInBackground(Void... params) {
-            Cursor itemCursor = mDatabase.rawQuery("SELECT " + PreloadInventoryDatabase.ScannedItemTable.Keys.BARCODE + ", " + PreloadInventoryDatabase.ScannedItemTable.Keys.LOCATION_ID + ", " + PreloadInventoryDatabase.ScannedItemTable.Keys.DATE_TIME + " FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " ORDER BY " + PreloadInventoryDatabase.ScannedItemTable.Keys.ID + " ASC;",null);
+            Cursor itemCursor = mDatabase.rawQuery("SELECT " + ScannedItemTable.Keys.BARCODE + ", " + ScannedItemTable.Keys.LOCATION_ID + ", " + ScannedItemTable.Keys.DATE_TIME + " FROM " + ScannedItemTable.NAME + " ORDER BY " + ScannedItemTable.Keys.ID + " ASC;",null);
             int itemBarcodeIndex = itemCursor.getColumnIndex(PreloadInventoryDatabase.BARCODE);
             int itemLocationIdIndex = itemCursor.getColumnIndex(PreloadInventoryDatabase.LOCATION_ID);
             int itemDateTimeIndex = itemCursor.getColumnIndex(PreloadInventoryDatabase.DATE_TIME);
 
-            Cursor locationCursor = mDatabase.rawQuery("SELECT " + PreloadInventoryDatabase.ScannedLocationTable.Keys.ID + ", " + PreloadInventoryDatabase.ScannedLocationTable.Keys.BARCODE + ", " + PreloadInventoryDatabase.ScannedLocationTable.Keys.DATE_TIME + " FROM " + PreloadInventoryDatabase.ScannedLocationTable.NAME + " ORDER BY " + PreloadInventoryDatabase.ScannedLocationTable.Keys.ID + " ASC;", null);
+            Cursor locationCursor = mDatabase.rawQuery("SELECT " + ScannedLocationTable.Keys.ID + ", " + ScannedLocationTable.Keys.BARCODE + ", " + ScannedLocationTable.Keys.DATE_TIME + " FROM " + ScannedLocationTable.NAME + " ORDER BY " + ScannedLocationTable.Keys.ID + " ASC;", null);
             int locationIdIndex = locationCursor.getColumnIndex(PreloadInventoryDatabase.ID);
             int locationBarcodeIndex = locationCursor.getColumnIndex(PreloadInventoryDatabase.BARCODE);
             int locationDateTimeIndex = locationCursor.getColumnIndex(PreloadInventoryDatabase.DATE_TIME);
@@ -291,7 +290,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         }
     });
 
-    private final WeakAsyncTask.AsyncTaskListeners<String, Float, Object[]> scanBarcodeTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(null, new WeakAsyncTask.OnDoInBackgroundListener<String, Float, Object[]>() {
+    private final WeakAsyncTask.AsyncTaskListeners<String, Void, Object[]> scanBarcodeTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(null, new WeakAsyncTask.OnDoInBackgroundListener<String, Void, Object[]>() {
         @Override
         public Object[] onDoInBackground(String... params) {
             if (params == null || params.length < 1)
@@ -324,7 +323,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 if (saveTask.getStatus() == AsyncTask.Status.RUNNING)
                     return null;
 
-                return new Object[] { isPreloaded ? "preloaded_location" : "non_preloaded_location", barcode, mDatabase.insert(PreloadInventoryDatabase.ScannedLocationTable.NAME, null, newScannedLocation), refreshLocations };
+                return new Object[] { isPreloaded ? "preloaded_location" : "non_preloaded_location", barcode, mDatabase.insert(ScannedLocationTable.NAME, null, newScannedLocation), refreshLocations };
             } else if (isItem(barcode) || isContainer(barcode)) {
                 if (mSelectedLocationBarcode == null || mSelectedLocationId < 0)
                     return new Object[] { "no_location" };
@@ -376,7 +375,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 if (saveTask.getStatus() == AsyncTask.Status.RUNNING)
                     return null;
 
-                return new Object[] { isItem(barcode) ? (isPreloaded ? "preloaded_item" : "non_preloaded_item") : (isPreloaded ? "preloaded_container" : "non_preloaded_container"), barcode, mDatabase.insert(PreloadInventoryDatabase.ScannedItemTable.NAME, null, newScannedItem), refreshList };
+                return new Object[] { isItem(barcode) ? (isPreloaded ? "preloaded_item" : "non_preloaded_item") : (isPreloaded ? "preloaded_container" : "non_preloaded_container"), barcode, mDatabase.insert(ScannedItemTable.NAME, null, newScannedItem), refreshList };
             } else {
                 return new Object[] { "not_recognized" };
             }
@@ -522,13 +521,16 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         mArchiveDirectory = new File(getFilesDir().getAbsolutePath(), "/" + PreloadInventoryDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
-        mArchiveDirectory.mkdirs();
+        if (mArchiveDirectory.mkdirs() || mArchiveDirectory.exists())
+            Log.w(TAG, "Archive directory could not be created, this may cause a problem");
         mInputFile = new File(INPUT_PATH.getAbsolutePath(), "data.txt");
         //noinspection ResultOfMethodCallIgnored
-        mInputFile.getParentFile().mkdirs();
+        if (mInputFile.getParentFile().mkdirs() || mInputFile.exists())
+            Log.w(TAG, "Archive directory could not be created, this may cause a problem");
         mOutputFile = new File(OUTPUT_PATH.getAbsolutePath(), "output.txt");
         //noinspection ResultOfMethodCallIgnored
-        mOutputFile.getParentFile().mkdirs();
+        if (mOutputFile.getParentFile().mkdirs())
+            Log.w(TAG, "Archive directory could not be created, this may cause a problem");
         //mDatabaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY + "/" + PreloadInventoryDatabase.FILE_NAME);
         mDatabaseFile = new File(mInputFile.getParent(), "/test.db");
         //noinspection ResultOfMethodCallIgnored
@@ -585,16 +587,16 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         mDatabase = SQLiteDatabase.openOrCreateDatabase(mDatabaseFile, null);
 
-        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.ScannedItemTable.NAME);
-        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadInventoryDatabase.ScannedItemTable.TABLE_CREATION);
-        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.ScannedLocationTable.NAME);
-        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadInventoryDatabase.ScannedLocationTable.TABLE_CREATION);
-        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.PreloadedItemTable.NAME);
-        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadInventoryDatabase.PreloadedItemTable.TABLE_CREATION);
-        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.PreloadedContainerTable.NAME);
-        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadInventoryDatabase.PreloadedContainerTable.TABLE_CREATION);
-        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.PreloadedLocationTable.NAME);
-        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadInventoryDatabase.PreloadedLocationTable.TABLE_CREATION);
+        mDatabase.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
+        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedItemTable.TABLE_CREATION);
+        mDatabase.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.NAME);
+        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + ScannedLocationTable.TABLE_CREATION);
+        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadedItemTable.NAME);
+        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedItemTable.TABLE_CREATION);
+        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadedContainerTable.NAME);
+        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedContainerTable.TABLE_CREATION);
+        mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadedLocationTable.NAME);
+        mDatabase.execSQL("CREATE TABLE IF NOT EXISTS " + PreloadedLocationTable.TABLE_CREATION);
 
         try {
             readFileIntoPreloadDatabase();
@@ -605,19 +607,19 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             Toast.makeText(this, "There was an error parsing the file", Toast.LENGTH_SHORT).show();
         }
 
-        GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT DISTINCT " + PreloadInventoryDatabase.ScannedItemTable.Keys.BARCODE + " FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_ITEM_ID + " IN ( SELECT " + PreloadInventoryDatabase.PreloadedItemTable.Keys.ID + " FROM " + PreloadInventoryDatabase.PreloadedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? ) OR " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " IN ( SELECT " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.ID + " FROM " + PreloadInventoryDatabase.PreloadedContainerTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " = ? ) )");
-        GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedItemTable.Keys.LOCATION_ID + " = ?");
-        GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT " + PreloadInventoryDatabase.PreloadedItemTable.Keys.BARCODE + " FROM " + PreloadInventoryDatabase.PreloadedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? UNION SELECT " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.BARCODE + " FROM " + PreloadInventoryDatabase.PreloadedContainerTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " = ? )");
-        GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? AND " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_ITEM_ID +" < 0 AND " + PreloadInventoryDatabase.ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " < 0");
-        GET_PRELOADED_LOCATION_ID_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadInventoryDatabase.PreloadedLocationTable.Keys.ID + " FROM " + PreloadInventoryDatabase.PreloadedLocationTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedLocationTable.Keys.BARCODE + " = ?");
-        GET_DUPLICATES_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + PreloadInventoryDatabase.ScannedLocationTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedLocationTable.Keys.BARCODE + " = ?");
-        //GET_FIRST_ID_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadInventoryDatabase.ID + " FROM ( SELECT " + ScannedLocationTable.Keys.ID + ", " + ScannedLocationTable.Keys.BARCODE + " AS barcode FROM " + ScannedLocationTable.NAME + " WHERE barcode = ? ORDER BY " + ScannedLocationTable.Keys.ID + " ASC LIMIT 1)");
-        GET_LAST_ID_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT MAX(" + PreloadInventoryDatabase.ScannedLocationTable.Keys.ID + ") as _id FROM " + PreloadInventoryDatabase.ScannedLocationTable.NAME + " WHERE barcode = ? AND _id NOT NULL GROUP BY " + PreloadInventoryDatabase.ScannedLocationTable.Keys.BARCODE);
-        GET_DUPLICATES_OF_SCANNED_ITEM_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedItemTable.Keys.BARCODE + " = ? AND " + PreloadInventoryDatabase.ScannedItemTable.Keys.LOCATION_ID + " IN ( SELECT " + PreloadInventoryDatabase.ScannedLocationTable.Keys.ID + " FROM " + PreloadInventoryDatabase.ScannedLocationTable.NAME + " WHERE " + PreloadInventoryDatabase.ScannedLocationTable.Keys.BARCODE + " = ? )");
-        GET_PRELOADED_ITEM_ID_FROM_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadInventoryDatabase.PreloadedItemTable.Keys.ID + " FROM " + PreloadInventoryDatabase.PreloadedItemTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedItemTable.Keys.BARCODE + " = ?");
-        GET_PRELOADED_CONTAINER_ID_FROM_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.ID + " FROM " + PreloadInventoryDatabase.PreloadedContainerTable.NAME + " WHERE " + PreloadInventoryDatabase.PreloadedContainerTable.Keys.BARCODE + " = ?");
-        GET_SCANNED_ITEM_COUNT_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + PreloadInventoryDatabase.ScannedItemTable.NAME);
-        GET_SCANNED_LOCATION_COUNT_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + PreloadInventoryDatabase.ScannedLocationTable.NAME);
+        GET_SCANNED_ITEM_COUNT_NOT_MISPLACED_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT DISTINCT " + ScannedItemTable.Keys.BARCODE + " FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.PRELOAD_ITEM_ID + " IN ( SELECT " + PreloadedItemTable.Keys.ID + " FROM " + PreloadedItemTable.NAME + " WHERE " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? ) OR " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " IN ( SELECT " + PreloadedContainerTable.Keys.ID + " FROM " + PreloadedContainerTable.NAME + " WHERE " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " = ? ) )");
+        GET_ITEM_COUNT_IN_SCANNED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.LOCATION_ID + " = ?");
+        GET_PRELOADED_ITEM_COUNT_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT " + PreloadedItemTable.Keys.BARCODE + " FROM " + PreloadedItemTable.NAME + " WHERE " + PreloadedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? UNION SELECT " + PreloadedContainerTable.Keys.BARCODE + " FROM " + PreloadedContainerTable.NAME + " WHERE " + PreloadedContainerTable.Keys.PRELOAD_LOCATION_ID + " = ? )");
+        GET_MISPLACED_ITEM_COUNT_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.PRELOAD_LOCATION_ID + " = ? AND " + ScannedItemTable.Keys.PRELOAD_ITEM_ID +" < 0 AND " + ScannedItemTable.Keys.PRELOAD_CONTAINER_ID + " < 0");
+        GET_PRELOADED_LOCATION_ID_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadedLocationTable.Keys.ID + " FROM " + PreloadedLocationTable.NAME + " WHERE " + PreloadedLocationTable.Keys.BARCODE + " = ?");
+        GET_DUPLICATES_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ScannedLocationTable.NAME + " WHERE " + ScannedLocationTable.Keys.BARCODE + " = ?");
+        //GET_FIRST_ID_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + ID + " FROM ( SELECT " + ScannedLocationTable.Keys.ID + ", " + ScannedLocationTable.Keys.BARCODE + " AS barcode FROM " + ScannedLocationTable.NAME + " WHERE barcode = ? ORDER BY " + ScannedLocationTable.Keys.ID + " ASC LIMIT 1)");
+        GET_LAST_ID_OF_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT MAX(" + ScannedLocationTable.Keys.ID + ") as _id FROM " + ScannedLocationTable.NAME + " WHERE barcode = ? AND _id NOT NULL GROUP BY " + ScannedLocationTable.Keys.BARCODE);
+        GET_DUPLICATES_OF_SCANNED_ITEM_IN_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ScannedItemTable.NAME + " WHERE " + ScannedItemTable.Keys.BARCODE + " = ? AND " + ScannedItemTable.Keys.LOCATION_ID + " IN ( SELECT " + ScannedLocationTable.Keys.ID + " FROM " + ScannedLocationTable.NAME + " WHERE " + ScannedLocationTable.Keys.BARCODE + " = ? )");
+        GET_PRELOADED_ITEM_ID_FROM_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadedItemTable.Keys.ID + " FROM " + PreloadedItemTable.NAME + " WHERE " + PreloadedItemTable.Keys.BARCODE + " = ?");
+        GET_PRELOADED_CONTAINER_ID_FROM_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT " + PreloadedContainerTable.Keys.ID + " FROM " + PreloadedContainerTable.NAME + " WHERE " + PreloadedContainerTable.Keys.BARCODE + " = ?");
+        GET_SCANNED_ITEM_COUNT_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ScannedItemTable.NAME);
+        GET_SCANNED_LOCATION_COUNT_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ScannedLocationTable.NAME);
 
         mProgressBar = findViewById(R.id.progress_saving);
 
@@ -921,11 +923,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             //mDatabase.delete(ItemTable.NAME, null, null);
                             //mDatabase.delete(LocationTable.NAME, null, null);
 
-                            mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.ScannedItemTable.NAME);
-                            mDatabase.execSQL("CREATE TABLE " + PreloadInventoryDatabase.ScannedItemTable.TABLE_CREATION);
+                            mDatabase.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
+                            mDatabase.execSQL("CREATE TABLE " + ScannedItemTable.TABLE_CREATION);
 
-                            mDatabase.execSQL("DROP TABLE IF EXISTS " + PreloadInventoryDatabase.ScannedLocationTable.NAME);
-                            mDatabase.execSQL("CREATE TABLE " + PreloadInventoryDatabase.ScannedLocationTable.TABLE_CREATION);
+                            mDatabase.execSQL("DROP TABLE IF EXISTS " + ScannedLocationTable.NAME);
+                            mDatabase.execSQL("CREATE TABLE " + ScannedLocationTable.TABLE_CREATION);
 
                             //if (itemCount + containerCount != deletedCount)
                             //Log.v(TAG, "Detected inconsistencies with number of items while deleting");
@@ -1187,7 +1189,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         newPreloadItem.put(PreloadInventoryDatabase.TAGS, "");
         newPreloadItem.put(PreloadInventoryDatabase.DESCRIPTION, description);
 
-        if (mDatabase.insert(PreloadInventoryDatabase.PreloadedItemTable.NAME, null, newPreloadItem) < 0)
+        if (mDatabase.insert(PreloadedItemTable.NAME, null, newPreloadItem) < 0)
             throw new SQLiteException(String.format("Error adding item \"%s\" to the inventory", barcode));
     }
 
@@ -1202,7 +1204,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         newPreloadContainer.put(PreloadInventoryDatabase.TAGS, "");
         newPreloadContainer.put(PreloadInventoryDatabase.DESCRIPTION, description);
 
-        if (mDatabase.insert(PreloadInventoryDatabase.PreloadedContainerTable.NAME, null, newPreloadContainer) < 0)
+        if (mDatabase.insert(PreloadedContainerTable.NAME, null, newPreloadContainer) < 0)
             throw new SQLiteException(String.format("Error adding container \"%s\" to the inventory", barcode));
     }
 
@@ -1214,7 +1216,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         newLocation.put(PreloadInventoryDatabase.TAGS, "");
         newLocation.put(PreloadInventoryDatabase.DESCRIPTION, description);
 
-        long rowID = mDatabase.insert(PreloadInventoryDatabase.PreloadedLocationTable.NAME, null, newLocation);
+        long rowID = mDatabase.insert(PreloadedLocationTable.NAME, null, newLocation);
 
         if (rowID == -1) return -1;
 
@@ -1373,7 +1375,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    mDatabase.delete(PreloadInventoryDatabase.ScannedItemTable.NAME, PreloadInventoryDatabase.ScannedItemTable.Keys.ID + " = ?", new String[]{String.valueOf(scannedItemId)});
+                                    mDatabase.delete(ScannedItemTable.NAME, ScannedItemTable.Keys.ID + " = ?", new String[]{String.valueOf(scannedItemId)});
                                     asyncRefreshItems();
                                 }
                             });
@@ -1553,7 +1555,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             return;
         }
 
-        new AsyncTask<SparseArray<Object>, Void, SparseArray<Object>>() {
+        new WeakAsyncTask<String, Void, Object[]>(scanBarcodeTaskListeners).execute();
+        /*new AsyncTask<SparseArray<Object>, Void, SparseArray<Object>>() {
             private final String TAG = this.getClass().getSimpleName();
 
             class ResultKeys {
@@ -1603,7 +1606,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                         return null;
 
                     SparseArray<Object> results = new SparseArray<>(4);
-                    results.append(ResultKeys.ROW_ID, mDatabase.insert(PreloadInventoryDatabase.ScannedLocationTable.NAME, null, newScannedLocation));
+                    results.append(ResultKeys.ROW_ID, mDatabase.insert(ScannedLocationTable.NAME, null, newScannedLocation));
                     results.append(ResultKeys.RESULT_TYPE, isPreloaded ? ResultValue.PRELOADED_LOCATION : ResultValue.NON_PRELOADED_LOCATION);
                     results.append(ResultKeys.BARCODE, barcode);
                     results.append(ResultKeys.REFRESH_LIST, refreshLocations);
@@ -1665,7 +1668,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                         return null;
 
                     SparseArray<Object> results = new SparseArray<>(4);
-                    results.append(ResultKeys.ROW_ID, mDatabase.insert(PreloadInventoryDatabase.ScannedItemTable.NAME, null, newScannedItem));
+                    results.append(ResultKeys.ROW_ID, mDatabase.insert(ScannedItemTable.NAME, null, newScannedItem));
                     results.append(ResultKeys.RESULT_TYPE, isItem(barcode) ? (isPreloaded ? ResultValue.PRELOADED_ITEM : ResultValue.NON_PRELOADED_ITEM) : (isPreloaded ? ResultValue.PRELOADED_CONTAINER : ResultValue.NON_PRELOADED_CONTAINER));
                     results.append(ResultKeys.BARCODE, barcode);
                     results.append(ResultKeys.REFRESH_LIST, refreshList);
@@ -1751,6 +1754,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 }
             }
             //todo finish
-        }.execute();
+        }.execute();*/
     }
 }
