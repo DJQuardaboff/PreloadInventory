@@ -519,22 +519,22 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
 
-        mArchiveDirectory = new File(getFilesDir().getAbsolutePath(), "/" + PreloadInventoryDatabase.ARCHIVE_DIRECTORY);
-        //noinspection ResultOfMethodCallIgnored
-        if (mArchiveDirectory.mkdirs() || mArchiveDirectory.exists())
-            Log.w(TAG, "Archive directory could not be created, this may cause a problem");
+        mArchiveDirectory = new File(getFilesDir().getAbsolutePath(), PreloadInventoryDatabase.ARCHIVE_DIRECTORY);
+        if (mArchiveDirectory.exists() || mArchiveDirectory.mkdirs())
+            Log.w(TAG, "Archive directory does not exist and could not be created, this may cause a problem");
+
         mInputFile = new File(INPUT_PATH.getAbsolutePath(), "data.txt");
-        //noinspection ResultOfMethodCallIgnored
-        if (mInputFile.getParentFile().mkdirs() || mInputFile.exists())
-            Log.w(TAG, "Archive directory could not be created, this may cause a problem");
+        if (mInputFile.exists() || mInputFile.getParentFile().mkdirs())
+            Log.w(TAG, "Input directory does not exist and could not be created, this may cause a problem");
+
         mOutputFile = new File(OUTPUT_PATH.getAbsolutePath(), "output.txt");
-        //noinspection ResultOfMethodCallIgnored
-        if (mOutputFile.getParentFile().mkdirs())
-            Log.w(TAG, "Archive directory could not be created, this may cause a problem");
-        //mDatabaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY + "/" + PreloadInventoryDatabase.FILE_NAME);
-        mDatabaseFile = new File(mInputFile.getParent(), "/test.db");
-        //noinspection ResultOfMethodCallIgnored
-        mDatabaseFile.getParentFile().mkdirs();
+        if (mOutputFile.exists() || mOutputFile.getParentFile().mkdirs())
+            Log.w(TAG, "Output directory does not exist and could not be created, this may cause a problem");
+
+        mDatabaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY, PreloadInventoryDatabase.FILE_NAME);
+        //mDatabaseFile = new File(mInputFile.getParent(), "/test.db");
+        if (mDatabaseFile.exists() || mDatabaseFile.getParentFile().mkdirs())
+            Log.w(TAG, "Output directory does not exist and could not be created, this may cause a problem");
 
         try {
             initialize();
@@ -1555,7 +1555,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             return;
         }
 
-        new WeakAsyncTask<String, Void, Object[]>(scanBarcodeTaskListeners).execute();
+        new WeakAsyncTask<>(scanBarcodeTaskListeners).execute(barcode);
         /*new AsyncTask<SparseArray<Object>, Void, SparseArray<Object>>() {
             private final String TAG = this.getClass().getSimpleName();
 
