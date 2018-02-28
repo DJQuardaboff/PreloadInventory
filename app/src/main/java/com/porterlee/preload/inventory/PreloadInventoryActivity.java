@@ -593,6 +593,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void initialize() throws SQLiteCantOpenDatabaseException {
+        saveTask = new WeakAsyncTask<>(saveTaskListeners);
+
         mDatabase = SQLiteDatabase.openOrCreateDatabase(mDatabaseFile, null);
 
         mDatabase.execSQL("DROP TABLE IF EXISTS " + ScannedItemTable.NAME);
