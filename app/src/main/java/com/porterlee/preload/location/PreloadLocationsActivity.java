@@ -55,6 +55,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.regex.Pattern;
 
 import device.scanner.DecodeResult;
 import device.scanner.IScannerService;
@@ -739,7 +740,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 lineIndex = 0;
 
                 //
-                String tempText = BuildConfig.APPLICATION_ID.split(".")[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+                String tempText = BuildConfig.APPLICATION_ID.split(Pattern.quote("."))[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
                 printStream.print(tempText);
                 printStream.flush();
                 lineIndex++;
