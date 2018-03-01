@@ -9,7 +9,7 @@ public class PreloadInventoryDatabase {
     public static final String PRELOADED_ITEM_ID = "preloaded_item_id";
     public static final String SCANNED_LOCATION_ID = "scanned_location_id";
     public static final String PRELOADED_LOCATION_ID = "preloaded_location_id";
-    public static final String PRELOADED_ITEM_COUNT = "preloaded_item_count";
+    public static final String PROGRESS = "progress";
     public static final String BARCODE = "barcode";
     public static final String CASE_NUMBER = "case_number";
     public static final String ITEM_NUMBER = "item_number";
@@ -51,12 +51,12 @@ public class PreloadInventoryDatabase {
 
     public static class LocationTable {
         public static final String NAME = "locations";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + PRELOADED_ITEM_COUNT + " INTEGER NOT NULL, " + BARCODE + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + PRELOADED_ITEM_COUNT + " INTEGER NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + PROGRESS + " REAL NOT NULL, " + BARCODE + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SCANNED_PRELOADED_ITEM_COUNT + " INTEGER NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
 
         public static class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;
             public static final String PRELOADED_LOCATION_ID = NAME + '.' + PreloadInventoryDatabase.PRELOADED_LOCATION_ID;
-            public static final String PRELOADED_ITEM_COUNT = NAME + '.' + PreloadInventoryDatabase.PRELOADED_ITEM_COUNT;
+            public static final String PROGRESS = NAME + '.' + PreloadInventoryDatabase.PROGRESS;
             public static final String BARCODE = NAME + '.' + PreloadInventoryDatabase.BARCODE;
             public static final String DESCRIPTION = NAME + '.' + PreloadInventoryDatabase.DESCRIPTION;
             public static final String SOURCE = NAME + '.' + PreloadInventoryDatabase.SOURCE;

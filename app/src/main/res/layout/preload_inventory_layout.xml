@@ -110,12 +110,10 @@
     </LinearLayout>
 
     <me.zhanghai.android.materialprogressbar.MaterialProgressBar
-        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
+        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal.NoPadding"
         android:id="@+id/progress_saving"
         android:layout_width="match_parent"
         android:layout_height="4dp"
-        android:max="320"
-        app:mpb_useIntrinsicPadding="false"
         app:mpb_progressStyle="horizontal"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"

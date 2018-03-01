@@ -19,11 +19,13 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.FileObserver;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -47,6 +49,7 @@ import android.widget.Toast;
 import com.porterlee.preload.BuildConfig;
 import com.porterlee.preload.Manifest;
 import com.porterlee.preload.R;
+import com.porterlee.preload.inventory.PreloadInventoryActivity;
 import com.porterlee.preload.location.PreloadLocationsDatabase.LocationTable;
 
 import java.io.BufferedReader;
@@ -71,6 +74,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
     private int maxProgress;
+    private FileObserver mFileObserver;
     private SharedPreferences sharedPreferences;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
     private Vibrator vibrator;
@@ -226,6 +230,27 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             }
         });*/
 
+        mFileObserver = new FileObserver(PreloadInventoryActivity.INPUT_PATH.getAbsolutePath()) {
+            @Override
+            public void onEvent(int event, @Nullable String path) {
+                if ((event & (FileObserver.CLOSE_WRITE | FileObserver.CREATE | FileObserver.MOVED_TO)) != 0) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
+                    builder.setCancelable(false);
+                    builder.setTitle("New Inventory");
+                    builder.setMessage("Would you like to start a new inventory with this data?");
+                    builder.setNegativeButton("no", null);
+                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
+                            finish();
+                        }
+                    });
+                    builder.create().show();
+                }
+            }
+        };
+
         locationRecyclerView = findViewById(R.id.location_list_view);
         locationRecyclerView.setHasFixedSize(true);
         locationRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -324,6 +349,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     @Override
     protected void onResume() {
         super.onResume();
+
+        mFileObserver.startWatching();
+
         resultReciever = new ScanResultReceiver();
         IntentFilter resultFilter = new IntentFilter();
         resultFilter.setPriority(0);
@@ -336,6 +364,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     @Override
     protected void onPause() {
         super.onPause();
+
+        mFileObserver.stopWatching();
+
         unregisterReceiver(resultReciever);
         unregisterReceiver(mScanKeyEventReceiver);
 
@@ -725,8 +756,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             int locationDateTimeIndex = locationCursor.getColumnIndex(PreloadLocationsDatabase.DATE_TIME);
 
             //Log.v(TAG, "Saving to file");
-
-            int lineIndex = -1;
             int progress = 0;
             int tempProgress;
 
@@ -737,7 +766,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 //Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
                 int totalLocationCount = locationCursor.getCount() + 1;
                 PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
-                lineIndex = 0;
+                int lineIndex = 0;
 
                 //
                 String tempText = BuildConfig.APPLICATION_ID.split(Pattern.quote("."))[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
@@ -756,55 +785,15 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                         progress = tempProgress;
                     }
 
-                    tempText = locationCursor.getString(locationBarcodeIndex) + "|" + locationCursor.getString(locationDateTimeIndex);
-                    printStream.println(tempText);
+                    printStream.printf("%s|%s\r\n", locationCursor.getString(locationBarcodeIndex), locationCursor.getString(locationDateTimeIndex));
                     printStream.flush();
                     locationCursor.moveToNext();
                     lineIndex++;
                 }
 
-                lineIndex = -1;
                 printStream.close();
-                locationCursor.moveToFirst();
-                BufferedReader br = new BufferedReader(new FileReader(TEMP_OUTPUT_FILE));
-                String line;
-                lineIndex = 0;
-
-                //
-                br.readLine();
-                lineIndex++;
-                //
-
-                while (!locationCursor.isAfterLast()) {
-                    if (isCancelled())
-                        return "Save canceled";
-
-                    tempProgress = (int) (((((float) lineIndex / totalLocationCount) / 3) + (2 / 3f)) * maxProgress);
-                    if (progress != tempProgress) {
-                        publishProgress(tempProgress);
-                        progress = tempProgress;
-                    }
-
-                    line = br.readLine();
-                    tempText = locationCursor.getString(locationCursor.getColumnIndex(PreloadLocationsDatabase.BARCODE)) + "|" + locationCursor.getString(locationCursor.getColumnIndex(PreloadLocationsDatabase.DATE_TIME));
-
-                    if (!tempText.equals(line)) {
-                        Log.e(TAG, "Error at line " + lineIndex + " of file output\n" +
-                                "Expected String: " + tempText + "\n" +
-                                "String in file: " + line);
-                        return "There was a problem verifying the output file";
-                    }
-
-                    //Log.v(TAG, itemText);
-                    locationCursor.moveToNext();
-                    lineIndex++;
-                }
-
-                lineIndex = -1;
-
                 locationCursor.close();
                 locationCursor.close();
-                br.close();
 
                 if (outputFile.exists() && !outputFile.delete()) {
                     //noinspection ResultOfMethodCallIgnored
@@ -813,35 +802,35 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                     return "Could not delete existing output file";
                 }
 
+                MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{ outputFile.getParent() }, null, null);
+
                 if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
                     Log.e(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
                     return "Could not rename temp file to \"" + outputFile.getName() + "\"";
                 }
+
+                MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{ outputFile.getParent() }, null, null);
             } catch (FileNotFoundException e){//IOException e) {
-                if (lineIndex == -1) {
-                    Log.e(TAG, "FileNotFoundException occurred outside of while loops: " + e.getMessage());
-                    e.printStackTrace();
-                    return "FileNotFoundException occurred while saving";
-                } else {
-                    Log.e(TAG, "FileNotFoundException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
-                    e.printStackTrace();
-                    return "FileNotFoundException occurred at line " + lineIndex + " in file while saving";
-                }
+                Log.e(TAG, "FileNotFoundException occurred while saving: " + e.getMessage());
+                e.printStackTrace();
+                locationCursor.close();
+                locationCursor.close();
+                return "FileNotFoundException occurred while saving";
             } catch (IOException e){//IOException e) {
-                if (lineIndex == -1) {
-                    Log.e(TAG, "IOException occurred outside of while loops: " + e.getMessage());
-                    e.printStackTrace();
-                    return "IOException occurred while saving";
-                } else {
-                    Log.e(TAG, "IOException occurred at line " + lineIndex + " in file while saving: " + e.getMessage());
-                    e.printStackTrace();
-                    return "IOException occurred at line " + lineIndex + " in file while saving";
-                }
+                Log.e(TAG, "IOException occurred while saving: " + e.getMessage());
+                e.printStackTrace();
+                locationCursor.close();
+                locationCursor.close();
+                return "IOException occurred while saving";
+            } finally {
+                locationCursor.close();
+                locationCursor.close();
             }
 
-            //Log.v(TAG, "Saved to: " + outputFile.getAbsolutePath());
+            locationCursor.close();
+            locationCursor.close();
             return "Saved to file";
         }
 
@@ -865,7 +854,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             if (changedSinceLastArchive)
                 archiveDatabase();
             postSave();
-            MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{outputFile.getAbsolutePath()}, null, null);
         }
 
         @Override
