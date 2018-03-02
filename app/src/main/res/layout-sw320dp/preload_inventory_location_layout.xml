@@ -1,14 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="32dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="28dp"
     android:orientation="horizontal"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
     android:gravity="center">
+
+    <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+        android:progressDrawable="@drawable/location_progress_bar"
+        android:id="@+id/location_progress_bar"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:progress="35"
+        android:secondaryProgress="20"
+        app:mpb_progressStyle="horizontal"
+        app:mpb_useIntrinsicPadding="false"
+        app:mpb_progressTint="#7F536DFE"
+        app:mpb_secondaryProgressTint="#3F536DFE"
+        app:mpb_progressBackgroundTint="#00000000"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"/>
 
     <View
         android:id="@+id/location_symbol"
@@ -17,9 +35,10 @@
         android:layout_marginStart="12dp"
         android:layout_marginEnd="16dp"
         android:visibility="invisible"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/location_description"
-        app:layout_constraintBottom_toBottomOf="@id/location_description"/>
+        app:layout_constraintEnd_toStartOf="@id/location_description"/>
 
     <TextView
         style="@android:style/TextAppearance.DeviceDefault.Medium"
@@ -27,19 +46,9 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="start"
-        app:layout_constraintStart_toEndOf="@id/location_symbol"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/location_progress_bar"/>
-
-    <me.zhanghai.android.materialprogressbar.MaterialProgressBar
-        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal.NoPadding"
-        android:id="@+id/location_progress_bar"
-        android:layout_width="0dp"
-        android:layout_height="4dp"
-        app:mpb_progressStyle="horizontal"
-        android:progress="55"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/location_symbol"
         app:layout_constraintEnd_toEndOf="parent"/>
 
 </android.support.constraint.ConstraintLayout>

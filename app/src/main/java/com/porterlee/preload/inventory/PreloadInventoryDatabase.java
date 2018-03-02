@@ -17,11 +17,12 @@ public class PreloadInventoryDatabase {
     public static final String DESCRIPTION = "description";
     public static final String SOURCE = "source";
     public static final String STATUS = "status";
+    public static final String ITEM_TYPE = "item_type";
     public static final String DATE_TIME = "datetime";
 
     public static class ItemTable {
         public static final String NAME = "items";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_ITEM_ID + " INTEGER NOT NULL, " + SCANNED_LOCATION_ID + " INTEGER NOT NULL, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + BARCODE + " TEXT NOT NULL, " + CASE_NUMBER + " TEXT NOT NULL, " + ITEM_NUMBER + " TEXT NOT NULL, " + PACKAGING + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_ITEM_ID + " INTEGER NOT NULL, " + SCANNED_LOCATION_ID + " INTEGER NOT NULL, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + BARCODE + " TEXT NOT NULL, " + CASE_NUMBER + " TEXT NOT NULL, " + ITEM_NUMBER + " TEXT NOT NULL, " + PACKAGING + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + ITEM_TYPE + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
 
         public static class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;
@@ -35,6 +36,7 @@ public class PreloadInventoryDatabase {
             public static final String DESCRIPTION = NAME + '.' + PreloadInventoryDatabase.DESCRIPTION;
             public static final String SOURCE = NAME + '.' + PreloadInventoryDatabase.SOURCE;
             public static final String STATUS = NAME + '.' + PreloadInventoryDatabase.STATUS;
+            public static final String ITEM_TYPE = NAME + '.' + PreloadInventoryDatabase.ITEM_TYPE;
             public static final String DATE_TIME = NAME + '.' + PreloadInventoryDatabase.DATE_TIME;
         }
 
@@ -47,11 +49,17 @@ public class PreloadInventoryDatabase {
             public static final String SCANNED = "scanned";
             public static final String NOT_SCANNED = "not_scanned";
         }
+
+        public static class ItemType {
+            public static final String ITEM = "item";
+            public static final String CASE_CONTAINER = "case_container";
+            public static final String BULK_CONTAINER = "bulk_container";
+        }
     }
 
     public static class LocationTable {
         public static final String NAME = "locations";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + PROGRESS + " REAL NOT NULL, " + BARCODE + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SCANNED_PRELOADED_ITEM_COUNT + " INTEGER NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
+        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + PROGRESS + " REAL NOT NULL, " + BARCODE + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
 
         public static class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;
@@ -70,9 +78,8 @@ public class PreloadInventoryDatabase {
         }
 
         public static class Status {
-            public static final String EMPTY = "empty";
-            public static final String STARTED = "started";
-            public static final String COMPLETE = "complete";
+            public static final String WARNING = "warning";
+            public static final String ERROR = "error";
         }
     }
 }

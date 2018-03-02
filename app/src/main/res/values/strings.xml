@@ -5,21 +5,23 @@
     <string name="remove_item">Remove item</string>
     <string name="view_pictures">View pictures</string>
     <string name="take_picture">Take a picture</string>
-    <string name="save_to_file">Save to file</string>
+    <string name="action_save_to_file_string">Save to file</string>
     <string name="switch_to_locations">Preload locations</string>
     <string name="last_scan_title_string">Last scan:</string>
     <string name="current_location_title_string">Current location:</string>
     <string name="total_items_title_string">Items:</string>
     <string name="total_containers_title_string">Containers:</string>
-    <string name="cancel_save">Cancel save</string>
+    <string name="action_cancel_save_string">Cancel save</string>
     <string name="inventory_barcodes_column_title">Barcode</string>
     <string name="inventory_location_column_title">Location</string>
     <string name="total_locations_title_string">Locations:</string>
-    <string name="clear_list">Clear inventory</string>
+    <string name="action_reset_inventory_string">Reset inventory</string>
     <string name="continuous_mode_title">Continuous mode</string>
     <string name="location_status_title_string">Location status:</string>
     <string name="items_scanned_title_string">Items scanned:</string>
     <string name="items_misplaced_title_string">Items misplaced:</string>
     <string name="items_scanned_format_string">%1d of %2d</string>
     <string name="items_number_format_string">%1s #%2s</string>
+    <string name="action_clear_list_string">Clear list</string>
+    <string name="action_clear_scanned_items_string">Clear scanned items</string>
 </resources>

@@ -400,37 +400,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_remove_all:
-                if (locationRecyclerAdapter.getItemCount() > 0) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setCancelable(true);
-                    builder.setTitle("Clear List");
-                    builder.setMessage("Are you sure you want to clear this list?");
-                    builder.setNegativeButton("no", null);
-                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            if (saveTask != null) {
-                                return;
-                            }
-
-                            changedSinceLastArchive = true;
-
-                            db.delete(LocationTable.NAME, "1", null);
-
-                            locationCount = 0;
-                            lastLocationBarcode = "-";
-
-                            locationRecyclerAdapter.notifyDataSetChanged();
-                            locationRecyclerAdapter.notifyItemRangeRemoved(0, locationRecyclerAdapter.getItemCount());
-                            updateInfo();
-                            Toast.makeText(PreloadLocationsActivity.this, "List cleared", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    builder.create().show();
-                } else
-                    Toast.makeText(this, "There are no locations in this list", Toast.LENGTH_SHORT).show();
-                return true;
             case R.id.action_save_to_file:
                 if (locationRecyclerAdapter.getItemCount() <= 0) {
                     Toast.makeText(this, "There are no locations in this list", Toast.LENGTH_SHORT).show();
@@ -473,6 +442,37 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 } else {
                     postSave();
                 }
+                return true;
+            case R.id.action_clear_list:
+                if (locationRecyclerAdapter.getItemCount() > 0) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setCancelable(true);
+                    builder.setTitle("Clear List");
+                    builder.setMessage("Are you sure you want to clear this list?");
+                    builder.setNegativeButton("no", null);
+                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            if (saveTask != null) {
+                                return;
+                            }
+
+                            changedSinceLastArchive = true;
+
+                            db.delete(LocationTable.NAME, "1", null);
+
+                            locationCount = 0;
+                            lastLocationBarcode = "-";
+
+                            locationRecyclerAdapter.notifyDataSetChanged();
+                            locationRecyclerAdapter.notifyItemRangeRemoved(0, locationRecyclerAdapter.getItemCount());
+                            updateInfo();
+                            Toast.makeText(PreloadLocationsActivity.this, "List cleared", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    builder.create().show();
+                } else
+                    Toast.makeText(this, "There are no locations in this list", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.action_continuous:
                 try {
@@ -544,7 +544,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         //progressBar.setVisibility(View.VISIBLE);
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
         mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(true);
-        mOptionsMenu.findItem(R.id.action_remove_all).setVisible(false);
+        mOptionsMenu.findItem(R.id.action_clear_list).setVisible(false);
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
@@ -554,7 +554,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         progressBar.setProgress(0);
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
         mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(false);
-        mOptionsMenu.findItem(R.id.action_remove_all).setVisible(true);
+        mOptionsMenu.findItem(R.id.action_clear_list).setVisible(true);
         onPrepareOptionsMenu(mOptionsMenu);
     }
 
