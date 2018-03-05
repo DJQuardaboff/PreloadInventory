@@ -16,8 +16,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteStatement;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.media.MediaScannerConnection;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -29,6 +27,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -48,6 +47,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,7 +59,6 @@ import java.io.LineNumberReader;
 import java.io.PrintStream;
 import java.text.ParseException;
 import java.util.Locale;
-import java.util.Random;
 import java.util.regex.Pattern;
 
 import com.danilomendes.progressbar.InvertedTextProgressbar;
@@ -87,7 +86,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class PreloadInventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     @Language("RoomSql")
-    private static final String ITEM_LIST_QUERY = "SELECT MIN(" + ItemTable.Keys.ID + ") AS _id, MAX(" + ItemTable.Keys.ID + ") AS max_id, MAX(" + ItemTable.Keys.PRELOADED_ITEM_ID + ") AS preloaded_item_id, MAX(" + ItemTable.Keys.SCANNED_LOCATION_ID + ") AS scanned_location_id, MAX(" + ItemTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, " + ItemTable.Keys.BARCODE + " AS barcode, MAX(" + ItemTable.Keys.CASE_NUMBER + ") AS case_number, MAX(" + ItemTable.Keys.ITEM_NUMBER + ") AS item_number, MAX(" + ItemTable.Keys.PACKAGING + ") AS packaging, MAX(" + ItemTable.Keys.DESCRIPTION + ") AS description, MIN(" + ItemTable.Keys.SOURCE + ") AS source, MAX(" + ItemTable.Keys.STATUS + ") AS status, " + ItemTable.Keys.ITEM_TYPE + " AS item_type, MAX(" + ItemTable.Keys.DATE_TIME + ") AS date_time FROM " + ItemTable.NAME + " WHERE preloaded_location_id = ? OR scanned_location_id IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.SCANNER + "\" AND " + LocationTable.Keys.BARCODE + " = ? ) GROUP BY barcode ORDER BY source, _id";
+    private static final String ITEM_LIST_QUERY = "SELECT MIN(" + ItemTable.Keys.ID + ") AS _id, MAX(" + ItemTable.Keys.ID + ") AS max_id, MAX(" + ItemTable.Keys.PRELOADED_ITEM_ID + ") AS preloaded_item_id, MAX(" + ItemTable.Keys.SCANNED_LOCATION_ID + ") AS scanned_location_id, MAX(" + ItemTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, " + ItemTable.Keys.BARCODE + " AS barcode, MAX(" + ItemTable.Keys.CASE_NUMBER + ") AS case_number, MAX(" + ItemTable.Keys.ITEM_NUMBER + ") AS item_number, MAX(" + ItemTable.Keys.PACKAGING + ") AS packaging, MAX(" + ItemTable.Keys.DESCRIPTION + ") AS description, MIN(" + ItemTable.Keys.SOURCE + ") AS source, MAX(" + ItemTable.Keys.STATUS + ") AS status, MAX(" + ItemTable.Keys.ITEM_TYPE + ") AS item_type, MAX(" + ItemTable.Keys.DATE_TIME + ") AS date_time FROM " + ItemTable.NAME + " WHERE preloaded_location_id = ? OR scanned_location_id IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.SCANNER + "\" AND " + LocationTable.Keys.BARCODE + " = ? ) GROUP BY barcode ORDER BY source, _id";
     @Language("RoomSql")
     private static final String LOCATION_LIST_QUERY = "SELECT MIN(" + LocationTable.Keys.ID + ") AS _id, MAX(" + LocationTable.Keys.ID + ") AS max_id, MAX(" + LocationTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, MAX(" + LocationTable.Keys.PROGRESS + ") AS progress, " + LocationTable.Keys.BARCODE + " AS barcode, MAX(" + LocationTable.Keys.DESCRIPTION + ") AS description, MIN(" + LocationTable.Keys.SOURCE + ") AS source, MAX(" + LocationTable.Keys.STATUS + ") AS status, MAX(" + LocationTable.Keys.DATE_TIME + ") AS date_time FROM " + LocationTable.NAME + " WHERE _id NOT NULL GROUP BY barcode ORDER BY source, _id";
     public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
@@ -117,6 +116,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private boolean mChangedSinceLastArchive;
     private MaterialProgressBar mProgressBar;
     private Menu mOptionsMenu;
+    private LocationViewHolder mSelectedLocationViewHolder;
     private long mSelectedLocationId = -1;
     private long mSelectedMaxLocationId = -1;
     private long mSelectedPreloadedLocationId = -1;
@@ -301,7 +301,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             if (params == null || params.length < 1)
                 throw new NullPointerException("This task must be initialized with a barcode");
 
-            String barcode = params[0];
+            final String barcode = params[0];
 
             if (isLocation(barcode)) {
                 boolean isPreloaded;
@@ -352,8 +352,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
                 GET_PRELOADED_ITEM_COUNT_FROM_PRELOADED_LOCATION_ID_AND_BARCODE_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
                 GET_PRELOADED_ITEM_COUNT_FROM_PRELOADED_LOCATION_ID_AND_BARCODE_STATEMENT.bindString(2, barcode);
-                if (GET_PRELOADED_ITEM_COUNT_FROM_PRELOADED_LOCATION_ID_AND_BARCODE_STATEMENT.simpleQueryForLong() < 1)
+                if (GET_PRELOADED_ITEM_COUNT_FROM_PRELOADED_LOCATION_ID_AND_BARCODE_STATEMENT.simpleQueryForLong() < 1) {
+                    Log.e(TAG, "misplaced item scanned");
                     isMisplaced = true;
+                }
 
                 try {
                     GET_PRELOADED_ITEM_ID_FROM_BARCODE_STATEMENT.bindString(1, barcode);
@@ -361,24 +363,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     isPreloaded = true;
                 } catch (SQLiteDoneException e) {
                     isPreloaded = false;
-                }
-
-                if (mSelectedLocationSource.equals(LocationTable.Source.PRELOAD) && isPreloaded && !isMisplaced) {
-                    refreshCurrentNotMisplacedScannedItemCount();
-                    refreshCurrentPreloadedItemCount();
-
-                    ContentValues progressValues = new ContentValues(1);
-                    progressValues.put(PreloadInventoryDatabase.PROGRESS, ((float) mCurrentNotMisplacedScannedItemCount) / mCurrentPreloadedItemCount);
-
-                    if (mDatabase.update(LocationTable.NAME, progressValues, LocationTable.Keys.ID + " = ?", new String[] { String.valueOf(mSelectedPreloadedLocationId) }) < 1)
-                        throw new IllegalStateException("No location with id of " + mSelectedPreloadedLocationId);
-
-                    ContentValues statusValues = new ContentValues(1);
-                    statusValues.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.SCANNED);
-
-                    if (mDatabase.update(ItemTable.NAME, statusValues, ItemTable.Keys.ID + " = ? AND " + ItemTable.Keys.SOURCE + " = ?", new String[]{ String.valueOf(preloadedItemId), ItemTable.Source.PRELOAD }) < 1)
-                        throw new IllegalStateException("No preloaded item with id of " + preloadedItemId);
-
                 }
 
                 //refreshList = !isPreloaded;
@@ -393,14 +377,67 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 newItemValues.put(PreloadInventoryDatabase.PACKAGING, "");
                 newItemValues.put(PreloadInventoryDatabase.DESCRIPTION, "");
                 newItemValues.put(PreloadInventoryDatabase.SOURCE, ItemTable.Source.SCANNER);
-                newItemValues.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.SCANNED);
-                newItemValues.put(PreloadInventoryDatabase.ITEM_TYPE, ItemTable.ItemType.ITEM);
+                newItemValues.put(PreloadInventoryDatabase.STATUS, isPreloaded && isMisplaced ? ItemTable.Status.MISPLACED : ItemTable.Status.SCANNED);
+                newItemValues.put(PreloadInventoryDatabase.ITEM_TYPE, "");
                 newItemValues.put(PreloadInventoryDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
+
+                long rowId = mDatabase.insert(ItemTable.NAME, null, newItemValues);
 
                 if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING))
                     return new Object[] { "saving", barcode };
 
-                return new Object[] { isPreloaded ? isMisplaced ? "misplaced_item" : "preloaded_item" : "non_preloaded_item", barcode, mDatabase.insert(ItemTable.NAME, null, newItemValues), true };
+                if (mSelectedLocationSource.equals(LocationTable.Source.PRELOAD)) {
+                    if (isPreloaded && !isMisplaced) {
+                        refreshCurrentNotMisplacedScannedItemCount();
+                        refreshCurrentPreloadedItemCount();
+
+                        final ContentValues progressValues = new ContentValues(1);
+                        progressValues.put(PreloadInventoryDatabase.PROGRESS, ((float) mCurrentNotMisplacedScannedItemCount) / mCurrentPreloadedItemCount);
+
+                        if (mDatabase.update(LocationTable.NAME, progressValues, LocationTable.Keys.ID + " = ?", new String[]{ String.valueOf(mSelectedPreloadedLocationId) }) < 1)
+                            throw new IllegalStateException("No location with id of " + mSelectedPreloadedLocationId);
+
+                        PreloadInventoryActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mSelectedLocationViewHolder.setProgress(progressValues.getAsFloat(PreloadInventoryDatabase.PROGRESS));
+                            }
+                        });
+
+                        ContentValues statusValues = new ContentValues(1);
+                        statusValues.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.SCANNED);
+
+                        if (mDatabase.update(ItemTable.NAME, statusValues, ItemTable.Keys.ID + " = ? AND " + ItemTable.Keys.SOURCE + " = ?", new String[]{ String.valueOf(preloadedItemId), ItemTable.Source.PRELOAD }) < 1)
+                            throw new IllegalStateException("No preloaded item with id of " + preloadedItemId);
+                    } else if (isPreloaded) {
+                        final ContentValues statusValues = new ContentValues(1);
+                        statusValues.put(PreloadInventoryDatabase.STATUS, LocationTable.Status.ERROR);
+
+                        if (mDatabase.update(LocationTable.NAME, statusValues, LocationTable.Keys.ID + " = ?", new String[]{ String.valueOf(mSelectedPreloadedLocationId) }) < 1)
+                            throw new IllegalStateException("No location with id of " + mSelectedPreloadedLocationId);
+
+                        PreloadInventoryActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mSelectedLocationViewHolder.setStatus(statusValues.getAsString(PreloadInventoryDatabase.STATUS));
+                            }
+                        });
+                    } else {
+                        final ContentValues statusValues = new ContentValues(1);
+                        statusValues.put(PreloadInventoryDatabase.STATUS, LocationTable.Status.WARNING);
+
+                        if (mDatabase.update(LocationTable.NAME, statusValues, LocationTable.Keys.ID + " = ? AND " + LocationTable.Keys.STATUS + " != ?", new String[]{ String.valueOf(mSelectedPreloadedLocationId), LocationTable.Status.ERROR }) > 0) {
+                            PreloadInventoryActivity.this.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mSelectedLocationViewHolder.setStatus(statusValues.getAsString(PreloadInventoryDatabase.STATUS));
+                                }
+                            });
+                        }
+                    }
+                }
+
+                return new Object[] { isPreloaded ? isMisplaced ? "misplaced_item" : "preloaded_item" : "non_preloaded_item", barcode, rowId, true };
             } else {
                 return new Object[] { "not_recognized" };
             }
@@ -494,8 +531,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                         else
                             asyncScrollToItem(barcode);
 
-                        Log.e(TAG, "preloaded item scanned");
-                        asyncRefreshLocations();
+                        refreshItemInfo();
                     }
                     break;
                 case "non_preloaded_item":
@@ -510,7 +546,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                         else
                             asyncScrollToItem(barcode);
 
-                        Log.e(TAG, "non-preloaded item scanned");
+                        refreshItemInfo();
                     }
                     break;
                 case "misplaced_item":
@@ -519,18 +555,18 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                         Log.e(TAG, String.format("Error adding item \"%s\" to the list", barcode));
                         throw new SQLiteException(String.format("Error adding item \"%s\" to the list", barcode));
                     } else {
+                        vibrate();
+                        Toast.makeText(PreloadInventoryActivity.this, "Misplaced item scanned", Toast.LENGTH_SHORT).show();
                         mChangedSinceLastArchive = true;
                         if (refreshList)
                             asyncRefreshItemsScrollToItem(barcode);
                         else
                             asyncScrollToItem(barcode);
 
-                        Log.e(TAG, "misplaced item scanned");
-                        //todo finish
+                        refreshItemInfo();
                     }
                     break;
             }
-            updateInfo();
         }
     }, new WeakAsyncTask.OnCancelledListener<Object[]>() {
         @Override
@@ -735,7 +771,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         mItemRecyclerView.setItemAnimator(itemRecyclerAnimator);
 
         mLocationRecyclerView.setSelectedItem(-1);
-        initItemLayout();
+        asyncRefreshItems();
         asyncRefreshLocations();
     }
 
@@ -767,6 +803,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 mItemRecyclerAdapter.changeCursor(results.first);
                 if (results.second >= 0)
                     mItemRecyclerView.scrollToPosition(results.second);
+                refreshItemInfo();
             }
         }.execute();
     }
@@ -869,8 +906,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         }.execute();
     }
 
-    private void initItemLayout() {
-        asyncRefreshItems();
+    private void refreshItemInfo() {
         refreshCurrentPreloadedItemCount();
         refreshCurrentNotMisplacedScannedItemCount();
         refreshCurrentMisplacedScannedItemCount();
@@ -1055,7 +1091,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 }
 
                 return true;
-            case R.id.action_clear_scanned_items:
+            /*case R.id.action_clear_scanned_items:
                 if (GET_SCANNED_ITEM_COUNT_STATEMENT.simpleQueryForLong() > 0 && GET_SCANNED_LOCATION_COUNT_STATEMENT.simpleQueryForLong() > 0) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(this);
                     builder.setCancelable(true);
@@ -1081,6 +1117,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             mDatabase.execSQL("CREATE TABLE " + LocationTable.NAME);
 
                             mLocationRecyclerView.setSelectedItem(-1);
+                            mSelectedLocationViewHolder = null;
                             mSelectedLocationSource = "";
                             mSelectedLocationStatus = "";
                             mSelectedPreloadedLocationId = -1;
@@ -1100,7 +1137,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 } else
                     Toast.makeText(this, "There are no items in this inventory", Toast.LENGTH_SHORT).show();
 
-                return true;
+                return true;*/
             case R.id.action_continuous:
                 try {
                     if (!item.isChecked())
@@ -1124,7 +1161,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(false);
         mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(true);
         mOptionsMenu.findItem(R.id.action_reset_inventory).setVisible(false);
-        mOptionsMenu.findItem(R.id.action_clear_scanned_items).setVisible(false);
+        //mOptionsMenu.findItem(R.id.action_clear_scanned_items).setVisible(false);
         mOptionsMenu.findItem(R.id.action_continuous).setVisible(false);
         onPrepareOptionsMenu(mOptionsMenu);
     }
@@ -1134,7 +1171,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         mOptionsMenu.findItem(R.id.action_save_to_file).setVisible(true);
         mOptionsMenu.findItem(R.id.action_cancel_save).setVisible(false);
         mOptionsMenu.findItem(R.id.action_reset_inventory).setVisible(true);
-        mOptionsMenu.findItem(R.id.action_clear_scanned_items).setVisible(true);
+        //mOptionsMenu.findItem(R.id.action_clear_scanned_items).setVisible(true);
         mOptionsMenu.findItem(R.id.action_continuous).setVisible(true);
         onPrepareOptionsMenu(mOptionsMenu);
     }
@@ -1235,6 +1272,16 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     if (elements.length > 0) {
                         if (elements.length == 3 && elements[0].equals("LOCATION") && isLocation(elements[1])) {
                             //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+
+                            Log.e(TAG, "\"" + elements[1] + "\"");
+                            GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
+                            Log.e(TAG, "duplicates3: " + GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong());
+
+                            Log.e(TAG, "\"" + elements[1] + "\"");
+                            GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
+                            temp = GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong();
+                            Log.e(TAG, "duplicates4: " + temp);
+
                             currentLocationId = addPreloadLocation(elements[1], elements[2]);
                             currentLocationBarcode = elements[1];
                             if (currentLocationId == -1) {
@@ -1307,10 +1354,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING) || preloadedLocationId == -1)
             return -1;
 
+        Log.e(TAG, "\"" + barcode + "\"");
+
         GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, barcode);
         long temp = GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong();
         if (temp > 0) {
-            Log.e(TAG, "duplicates: " + temp);
+            Log.e(TAG, "duplicates5: " + temp);
             return -1;
         }
 
@@ -1324,7 +1373,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         newPreloadItem.put(PreloadInventoryDatabase.PACKAGING, packaging);
         newPreloadItem.put(PreloadInventoryDatabase.DESCRIPTION, description);
         newPreloadItem.put(PreloadInventoryDatabase.SOURCE, ItemTable.Source.PRELOAD);
-        newPreloadItem.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.NOT_SCANNED);
+        newPreloadItem.put(PreloadInventoryDatabase.STATUS, "");
         newPreloadItem.put(PreloadInventoryDatabase.ITEM_TYPE, itemType);
         newPreloadItem.put(PreloadInventoryDatabase.DATE_TIME, "");
 
@@ -1339,7 +1388,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, barcode);
         long temp = GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong();
-        Log.e(TAG, "duplicates3: " + temp);
+        Log.e(TAG, "duplicates5: " + temp);
         if (temp > 0) {
             return -1;
         }
@@ -1360,17 +1409,17 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         if (mCurrentPreloadedItemCount < 1)
             return;
 
-        int position = new Random().nextInt(mCurrentPreloadedItemCount);
         Cursor cursor = mItemRecyclerAdapter.getCursor();
         int barcodeIndex = cursor.getColumnIndex(PreloadInventoryDatabase.BARCODE);
         int sourceIndex = cursor.getColumnIndex(PreloadInventoryDatabase.SOURCE);
+        int statusIndex = cursor.getColumnIndex(PreloadInventoryDatabase.STATUS);
         cursor.moveToFirst();
-        int index = 0;
         while (!cursor.isAfterLast()) {
             if (cursor.getString(sourceIndex).equals(ItemTable.Source.PRELOAD)) {
-                if (index == position)
+                if (!cursor.getString(statusIndex).equals(ItemTable.Status.SCANNED)) {
                     scanBarcode(cursor.getString(barcodeIndex));
-                index++;
+                    break;
+                }
             }
             cursor.moveToNext();
         }
@@ -1385,8 +1434,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private class LocationViewHolder extends RecyclerView.ViewHolder {
-        //private TextView locationDescriptionTextView;
         private InvertedTextProgressbar locationProgressBar;
+        private ImageView locationSymbol;
+        //private TextView locationDescriptionTextView;
         private long id = -1;
         private long maxId = -1;
         private long preloadedLocationId = -1;
@@ -1398,14 +1448,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         private String dateTime = "";
         boolean isSelected = false;
 
-        InvertedTextProgressbar getProgressBar() {
-            return locationProgressBar;
-        }
-
         LocationViewHolder(final View itemView) {
             super(itemView);
             //locationDescriptionTextView = itemView.findViewById(R.id.location_description);
             locationProgressBar = itemView.findViewById(R.id.location_progress_bar);
+            locationSymbol = itemView.findViewById(R.id.location_symbol);
             itemView.setClickable(true);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -1415,26 +1462,48 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             });
         }
 
+        void setProgress(float percent) {
+            this.progress = percent;
+            int progress = Math.round(percent * locationProgressBar.getMaxProgress());
+            if (progress == locationProgressBar.getMaxProgress())
+                locationSymbol.setImageResource(R.drawable.ic_check_box_black_24dp);
+            else if (progress == locationProgressBar.getMinProgress())
+                locationSymbol.setImageResource(R.drawable.ic_check_box_outline_blank_black_24dp);
+            else
+                locationSymbol.setImageResource(R.drawable.ic_indeterminate_check_box_black_24dp);
+
+            locationProgressBar.setProgress(progress);
+        }
+
+        void setStatus(String status) {
+            this.status = status;
+            if (isSelected)
+                mSelectedLocationStatus = status;
+
+            locationSymbol.setColorFilter(ResourcesCompat.getColor(getResources(), status.equals(LocationTable.Status.WARNING) ? R.color.warning_location_color : (status.equals(LocationTable.Status.ERROR) ? R.color.error_location_color : R.color.ok_location_color), null));
+        }
+
         void bindViews(Cursor cursor) {
             id = cursor.getLong(cursor.getColumnIndex("_id"));
             maxId = cursor.getLong(cursor.getColumnIndex("max_id"));
             preloadedLocationId = cursor.getLong(cursor.getColumnIndex("preloaded_location_id"));
-            progress = cursor.getFloat(cursor.getColumnIndex("progress"));
+            setProgress(cursor.getFloat(cursor.getColumnIndex("progress")));
             barcode = cursor.getString(cursor.getColumnIndex("barcode"));
             description = cursor.getString(cursor.getColumnIndex("description"));
             source = cursor.getString(cursor.getColumnIndex("source"));
-            status = cursor.getString(cursor.getColumnIndex("status"));
+            setStatus(cursor.getString(cursor.getColumnIndex("status")));
             dateTime = cursor.getString(cursor.getColumnIndex("date_time"));
             isSelected = getAdapterPosition() == mLocationRecyclerView.getSelectedItem();
 
             if (isSelected) {
+                mSelectedLocationViewHolder = this;
                 mSelectedLocationId = id;
                 mSelectedMaxLocationId = maxId;
                 mSelectedPreloadedLocationId = preloadedLocationId;
                 mSelectedLocationBarcode = barcode;
                 mSelectedLocationSource = source;
                 mSelectedLocationStatus = status;
-                initItemLayout();
+                asyncRefreshItems();
             }
 
             //itemView.setBackgroundColor(source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? SELECTED_PRELOADED_LOCATION_BACKGROUND_COLOR : DESELECTED_PRELOADED_LOCATION_BACKGROUND_COLOR) : (isSelected ? SELECTED_SCANNED_LOCATION_BACKGROUND_COLOR : DESELECTED_SCANNED_LOCATION_BACKGROUND_COLOR));
@@ -1443,12 +1512,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             //locationDescriptionTextView.setText(source.equals(LocationTable.Source.PRELOAD) ? description : barcode);
             //locationDescriptionTextView.setTextColor(source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_preloaded_location_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_preloaded_location_text_color, null)) : (isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_scanned_location_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_scanned_location_text_color, null)));
             locationProgressBar.setText(source.equals(LocationTable.Source.PRELOAD) ? description : barcode);
-            locationProgressBar.getTextPaint().setColor(source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_preloaded_location_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_preloaded_location_text_color, null)) : (isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_scanned_location_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_scanned_location_text_color, null)));
+            locationProgressBar.getTextPaint().setColor(ResourcesCompat.getColor(getResources(), source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? R.color.selected_preloaded_location_text_color : R.color.deselected_preloaded_location_text_color) : (isSelected ? R.color.selected_scanned_location_text_color : R.color.deselected_scanned_location_text_color), null));
+            //locationProgressBar.getTextPaint().setColor(source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_preloaded_location_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_preloaded_location_text_color, null)) : (isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_scanned_location_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_scanned_location_text_color, null)));
             locationProgressBar.getTextInvertedPaint().setColor(isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_preloaded_location_inverted_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_preloaded_location_inverted_text_color, null));
             locationProgressBar.setImageResource(isSelected ? R.drawable.preloaded_location_progress_bar_selected : R.drawable.preloaded_location_progress_bar_deselected);
 
-            Log.e(TAG, String.valueOf((int) (progress * locationProgressBar.getMaxProgress())));
-            locationProgressBar.setProgress((int) (progress * locationProgressBar.getMaxProgress()));
+            Log.e(TAG, "progress = " + progress);
         }
     }
 
@@ -1458,6 +1527,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         private TextView textView2;
         private ImageButton expandedMenuButton;
         private long id = -1;
+        private long maxId = -1;
         private long preloadItemId = -1;
         private long scannedLocationId = -1;
         private long preloadLocationId = -1;
@@ -1486,8 +1556,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                         @Override
                         public boolean onMenuItemClick(MenuItem menuItem) {
-                            if (source.equals(ItemTable.Source.PRELOAD)) {
-                                throw new IllegalStateException("A preloaded item's 'Remove item' menu option was clicked. Preloaded items cannot be individually removed by the user");
+                            if (source.equals(ItemTable.Source.PRELOAD) && !status.equals(ItemTable.Status.SCANNED) && !status.equals(ItemTable.Status.MISPLACED)) {
+                                throw new IllegalStateException("A not-scanned preloaded item's 'Remove item' menu option was clicked. Preloaded items cannot be individually removed by the user");
                             }
 
                             if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING)) {
@@ -1498,12 +1568,37 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             AlertDialog.Builder builder = new AlertDialog.Builder(PreloadInventoryActivity.this);
                             builder.setCancelable(true);
                             builder.setTitle("Remove item");
-                            builder.setMessage(String.format("Are you sure you want to remove barcode \"%s\"?", barcode));
+                            if (source.equals(ItemTable.Source.PRELOAD)) {
+                                switch (itemType) {
+                                    case ItemTable.ItemType.ITEM:
+                                        builder.setMessage(String.format("Are you sure you want to remove item \"%s\"?", getString(R.string.items_number_format_string, caseNumber, itemNumber)));
+                                        break;
+                                    case ItemTable.ItemType.BULK_CONTAINER:
+                                        builder.setMessage(String.format("Are you sure you want to remove bulk-container \"%s\"?", description));
+                                        break;
+                                    case ItemTable.ItemType.CASE_CONTAINER:
+                                        builder.setMessage(String.format("Are you sure you want to remove item \"%s\"?", caseNumber));
+                                        break;
+                                }
+                            } else {
+                                builder.setMessage(String.format("Are you sure you want to remove item \"%s\"?", barcode));
+                            }
                             builder.setNegativeButton("no", null);
                             builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    mDatabase.delete(ItemTable.NAME, ItemTable.Keys.ID + " = ?", new String[]{String.valueOf(id)});
+                                    if (mDatabase.delete(ItemTable.NAME, ItemTable.Keys.ID + " = ? AND " + ItemTable.Keys.SOURCE + " != ?", new String[]{ String.valueOf(maxId), ItemTable.Source.PRELOAD }) < 1)
+                                        throw new SQLiteException("Could not delete scanned item: No scanned item found with an id of " + maxId);
+
+                                    if (source.equals(ItemTable.Source.PRELOAD)) {
+                                        ContentValues statusValues = new ContentValues(1);
+                                        statusValues.put(PreloadInventoryDatabase.STATUS, "");
+
+                                        //todo change location status
+
+                                        if (mDatabase.update(ItemTable.NAME, statusValues, ItemTable.Keys.ID + " = ? AND " + ItemTable.Keys.SOURCE + " = ?", new String[]{String.valueOf(id), ItemTable.Source.PRELOAD}) < 1)
+                                            throw new SQLiteException("Could not update status of preloaded item: No preloaded item found with an id of " + maxId);
+                                    }
                                     asyncRefreshItems();
                                 }
                             });
@@ -1519,6 +1614,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         void bindViews(Cursor cursor) {
             this.id = cursor.getLong(cursor.getColumnIndex("_id"));
+            this.maxId = cursor.getLong(cursor.getColumnIndex("max_id"));
             this.preloadItemId = cursor.getLong(cursor.getColumnIndex("preloaded_item_id"));
             this.scannedLocationId = cursor.getLong(cursor.getColumnIndex("scanned_location_id"));
             this.preloadLocationId = cursor.getLong(cursor.getColumnIndex("preloaded_location_id"));
@@ -1532,49 +1628,48 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             this.itemType = cursor.getString(cursor.getColumnIndex("item_type"));
             this.dateTime = cursor.getString(cursor.getColumnIndex("date_time"));
 
-            if (source.equals(ItemTable.Source.PRELOAD))
-                expandedMenuButton.setVisibility(View.INVISIBLE);
+            if (source.equals(ItemTable.Source.PRELOAD) && !status.equals(ItemTable.Status.SCANNED) && !status.equals(ItemTable.Status.MISPLACED))
+                expandedMenuButton.setVisibility(View.GONE);
             else
                 expandedMenuButton.setVisibility(View.VISIBLE);
 
-            switch (itemType) {
-                case ItemTable.ItemType.ITEM:
-                    if (source.equals(ItemTable.Source.PRELOAD)) {
+            if (source.equals(ItemTable.Source.PRELOAD)) {
+                switch (itemType) {
+                    case ItemTable.ItemType.ITEM:
                         textView1.setText(getString(R.string.items_number_format_string, caseNumber, itemNumber));
                         textView1.setVisibility(View.VISIBLE);
-                        dividerView.setVisibility(View.VISIBLE);
                         textView2.setText(packaging);
                         textView2.setVisibility(View.VISIBLE);
-                    } else {
-                        textView1.setText(barcode);
-                        textView1.setVisibility(View.VISIBLE);
-                        dividerView.setVisibility(View.VISIBLE);
-                        textView2.setText("-");
+                        break;
+                    case ItemTable.ItemType.BULK_CONTAINER:
+                        textView1.setText(description);
+                        textView2.setVisibility(View.INVISIBLE);
+                        break;
+                    case ItemTable.ItemType.CASE_CONTAINER:
+                        textView1.setText(caseNumber);
+                        textView2.setText(description);
                         textView2.setVisibility(View.VISIBLE);
-                    }
-                    break;
-                case ItemTable.ItemType.BULK_CONTAINER:
-                    textView1.setText(description);
-                    textView1.setVisibility(View.VISIBLE);
-                    dividerView.setVisibility(View.VISIBLE);
-                    textView2.setText("-");
-                    textView2.setVisibility(View.VISIBLE);
-                    break;
-                case ItemTable.ItemType.CASE_CONTAINER:
-                    textView1.setText(caseNumber);
-                    textView1.setVisibility(View.VISIBLE);
-                    dividerView.setVisibility(View.VISIBLE);
-                    textView2.setText(description);
-                    textView2.setVisibility(View.VISIBLE);
-                    break;
+                        break;
+                }
+            } else {
+                textView1.setText(barcode);
+                textView2.setVisibility(View.INVISIBLE);
             }
 
-            if (source.equals(ItemTable.Source.PRELOAD)) {
-                if (preloadLocationId == mSelectedPreloadedLocationId) { // if it's not misplaced
-
-                } else { // if it's misplaced
-
+            if (status.equals(ItemTable.Status.MISPLACED)) { // if it's misplaced
+                Log.e(TAG, "misplaced preloaded item bound: \"" + barcode + "\"");
+                itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.misplaced_scanned_preloaded_item_color, null));
+            } else if (source.equals(ItemTable.Source.PRELOAD)) { // if it's not misplaced
+                if (status.equals(ItemTable.Status.SCANNED)) {
+                    Log.e(TAG, "scanned preloaded item bound: \"" + barcode + "\"");
+                    itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.not_misplaced_scanned_preloaded_item_color, null));
+                } else {
+                    Log.e(TAG, "not scanned preloaded item bound: \"" + barcode + "\"");
+                    itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.not_misplaced_preloaded_item_color, null));
                 }
+            } else {
+                Log.e(TAG, "scanned item bound: \"" + barcode + "\"");
+                itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.scanned_item_color, null));
             }
         }
     }

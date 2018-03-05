@@ -24,10 +24,10 @@
         android:title="@string/action_reset_inventory_string"
         app:showAsAction="never"/>
 
-    <item
+    <!--item
         android:id="@+id/action_clear_scanned_items"
         android:title="@string/action_clear_scanned_items_string"
-        app:showAsAction="never"/>
+        app:showAsAction="never"/-->
 
     <item
         android:id="@+id/action_continuous"

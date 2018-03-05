@@ -47,7 +47,7 @@ public class PreloadInventoryDatabase {
 
         public static class Status {
             public static final String SCANNED = "S";
-            public static final String NOT_SCANNED = "N";
+            public static final String MISPLACED = "M";
         }
 
         public static class ItemType {

@@ -8,6 +8,7 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
+    android:background="#fff"
     android:gravity="center">
 
     <com.danilomendes.progressbar.InvertedTextProgressbar
@@ -17,22 +18,24 @@
         android:layout_height="0dp"
         app:min_progress="0"
         app:max_progress="100"
-        app:text_size="17sp"
+        app:text_size="18sp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <View
+    <ImageView
         android:id="@+id/location_symbol"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="16dp"
-        android:visibility="invisible"
+        android:src="@drawable/ic_check_box_black_24dp"
+        android:tint="@color/ok_location_color"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent"
+        android:clickable="false"/>
 
     <!--TextView
         style="@android:style/TextAppearance.DeviceDefault.Medium"
