@@ -41,19 +41,19 @@ public class PreloadInventoryDatabase {
         }
 
         public static class Source {
-            public static final String SCANNER = "scanner";
-            public static final String PRELOADED = "preload";
+            public static final String SCANNER = "S";
+            public static final String PRELOAD = "P";
         }
 
         public static class Status {
-            public static final String SCANNED = "scanned";
-            public static final String NOT_SCANNED = "not_scanned";
+            public static final String SCANNED = "S";
+            public static final String NOT_SCANNED = "N";
         }
 
         public static class ItemType {
-            public static final String ITEM = "item";
-            public static final String CASE_CONTAINER = "case_container";
-            public static final String BULK_CONTAINER = "bulk_container";
+            public static final String ITEM = "I";
+            public static final String CASE_CONTAINER = "C";
+            public static final String BULK_CONTAINER = "B";
         }
     }
 
@@ -73,13 +73,13 @@ public class PreloadInventoryDatabase {
         }
 
         public static class Source {
-            public static final String SCANNER = "scanner";
-            public static final String PRELOADED = "preload";
+            public static final String SCANNER = "S";
+            public static final String PRELOAD = "P";
         }
 
         public static class Status {
-            public static final String WARNING = "warning";
-            public static final String ERROR = "error";
+            public static final String WARNING = "W";
+            public static final String ERROR = "E";
         }
     }
 }

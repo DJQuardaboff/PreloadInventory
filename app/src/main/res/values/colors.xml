@@ -4,4 +4,15 @@
     <color name="colorPrimaryDark">#E64A19</color>
     <color name="colorPrimaryLight">#FF6E40</color>
     <color name="colorAccent">#536DFE</color>
+
+    <color name="selected_preloaded_location_background_color">#FFA9B6FF</color>
+    <color name="selected_preloaded_location_text_color">#FF000000</color>
+    <color name="selected_preloaded_location_inverted_text_color">#FFFFFFFF</color>
+    <color name="deselected_preloaded_location_background_color">#FFFFFFFF</color>
+    <color name="deselected_preloaded_location_text_color">#FF000000</color>
+    <color name="deselected_preloaded_location_inverted_text_color">#FF000000</color>
+    <color name="selected_scanned_location_background_color">#FF009688</color>
+    <color name="selected_scanned_location_text_color">#FFFFFFFF</color>
+    <color name="deselected_scanned_location_background_color">#FFFFFFFF</color>
+    <color name="deselected_scanned_location_text_color">#FF009688</color>
 </resources>
