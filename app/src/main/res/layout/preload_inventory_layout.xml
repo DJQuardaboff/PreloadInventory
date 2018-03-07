@@ -29,7 +29,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:paddingTop="4dp"
+            android:paddingTop="5dp"
             android:clipToPadding="false"
             android:layoutAnimation="@anim/layout_animation"
             android:background="@drawable/inventory_location_rounded_recycler"/>
@@ -132,7 +132,7 @@
         app:layout_constraintVertical_chainStyle="spread"
         app:layout_constraintVertical_weight="1"/>
 
-    <Button
+    <!--Button
         android:id="@+id/random_scan_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -142,6 +142,6 @@
         android:text="Random Scan"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" /-->
 
 </android.support.constraint.ConstraintLayout>

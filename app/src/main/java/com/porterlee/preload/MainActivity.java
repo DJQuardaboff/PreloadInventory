@@ -2,6 +2,7 @@ package com.porterlee.preload;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
@@ -40,13 +41,15 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     @Nullable
-    public static Intent getPreloadIntent(Context context) throws IOException {
+    public Intent getPreloadIntent(Context context) throws IOException {
+        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
+
         //noinspection ResultOfMethodCallIgnored
         PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.INPUT_PATH.mkdirs();
 
-        return new Intent(context, PreloadInventoryActivity.class);
+        return new Intent(context, sharedPreferences.getBoolean("ongoing_inventory", false) ? PreloadInventoryActivity.class : PreloadLocationsActivity.class);
         /*
         File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
         File[] fileInputs = PreloadInventoryActivity.INPUT_PATH.listFiles();

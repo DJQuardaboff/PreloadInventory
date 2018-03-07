@@ -6,7 +6,7 @@
     <color name="colorAccent">#536DFE</color>
 
     <color name="selected_preloaded_location_background_color">#FF8C9EFE</color>
-    <color name="selected_preloaded_location_text_color">#FF000000</color>
+    <color name="selected_preloaded_location_text_color">#AF000000</color>
     <color name="selected_preloaded_location_inverted_text_color">#FFFFFFFF</color>
     <color name="deselected_preloaded_location_background_color">#FFFFFFFF</color>
     <color name="deselected_preloaded_location_text_color">#FF000000</color>
@@ -18,11 +18,11 @@
 
     <!--color name="misplaced_scanned_preloaded_item_color">#FFE99797</color-->
     <!--color name="not_misplaced_scanned_preloaded_item_color">#FFA6D7A8</color-->
-    <color name="misplaced_scanned_preloaded_item_color">#3FF44336</color>
-    <color name="not_misplaced_scanned_preloaded_item_color">#3F4CAF50</color>
+    <color name="misplaced_scanned_preloaded_item_color">#7FF44336</color>
+    <color name="not_misplaced_scanned_preloaded_item_color">#7F4CAF50</color>
     <color name="not_misplaced_preloaded_item_color">#FFFFFFFF</color>
     <color name="scanned_item_color">#FFFFFFFF</color>
-    <color name="ok_location_color">#5F5F5F</color>
+    <color name="ok_location_color">#8BC34A</color>
     <color name="warning_location_color">#FBC02D</color>
-    <color name="error_location_color">#ff1744</color>
+    <color name="error_location_color">#FF1744</color>
 </resources>

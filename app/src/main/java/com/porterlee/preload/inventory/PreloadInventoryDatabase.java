@@ -1,5 +1,7 @@
 package com.porterlee.preload.inventory;
 
+import android.database.sqlite.SQLiteDatabase;
+
 @SuppressWarnings("WeakerAccess")
 public class PreloadInventoryDatabase {
     public static final String FILE_NAME = "preload_inventory.db";
@@ -18,11 +20,17 @@ public class PreloadInventoryDatabase {
     public static final String SOURCE = "source";
     public static final String STATUS = "status";
     public static final String ITEM_TYPE = "item_type";
-    public static final String DATE_TIME = "datetime";
+    public static final String DATE_TIME = "date_time";
+    public static final String ITEM_BARCODE_INDEX = "item_barcode_index";
+    public static final String LOCATION_BARCODE_INDEX = "location_barcode_index";
 
     public static class ItemTable {
         public static final String NAME = "items";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_ITEM_ID + " INTEGER NOT NULL, " + SCANNED_LOCATION_ID + " INTEGER NOT NULL, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + BARCODE + " TEXT NOT NULL, " + CASE_NUMBER + " TEXT NOT NULL, " + ITEM_NUMBER + " TEXT NOT NULL, " + PACKAGING + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + ITEM_TYPE + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
+
+        static public void create(SQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_ITEM_ID + " INTEGER NOT NULL, " + SCANNED_LOCATION_ID + " INTEGER NOT NULL, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + BARCODE + " TEXT NOT NULL, " + CASE_NUMBER + " TEXT NOT NULL, " + ITEM_NUMBER + " TEXT NOT NULL, " + PACKAGING + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + ITEM_TYPE + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )");
+            database.execSQL("CREATE INDEX IF NOT EXISTS " + ITEM_BARCODE_INDEX + " ON " + NAME + " ( " + BARCODE + " );");
+        }
 
         public static class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;
@@ -59,7 +67,11 @@ public class PreloadInventoryDatabase {
 
     public static class LocationTable {
         public static final String NAME = "locations";
-        public static final String TABLE_CREATION = NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + PROGRESS + " REAL NOT NULL, " + BARCODE + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )";
+
+        static public void create(SQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS " + NAME + " ( " + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + PRELOADED_LOCATION_ID + " INTEGER NOT NULL, " + PROGRESS + " REAL NOT NULL, " + BARCODE + " TEXT NOT NULL, " + DESCRIPTION + " TEXT NOT NULL, " + SOURCE + " TEXT NOT NULL, " + STATUS + " TEXT NOT NULL, " + DATE_TIME + " TEXT NOT NULL )");
+            database.execSQL("CREATE INDEX IF NOT EXISTS " + LOCATION_BARCODE_INDEX + " ON " + NAME + " ( " + BARCODE + " );");
+        }
 
         public static class Keys {
             public static final String ID = NAME + '.' + PreloadInventoryDatabase.ID;

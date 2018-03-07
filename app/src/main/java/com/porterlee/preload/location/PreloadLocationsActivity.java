@@ -234,19 +234,12 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             @Override
             public void onEvent(int event, @Nullable String path) {
                 if ((event & (FileObserver.CLOSE_WRITE | FileObserver.CREATE | FileObserver.MOVED_TO)) != 0) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-                    builder.setCancelable(false);
-                    builder.setTitle("New Inventory");
-                    builder.setMessage("Would you like to start a new inventory with this data?");
-                    builder.setNegativeButton("no", null);
-                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                    runOnUiThread(new Runnable() {
                         @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
-                            finish();
+                        public void run() {
+                            askToInventory();
                         }
                     });
-                    builder.create().show();
                 }
             }
         };
@@ -525,6 +518,22 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         }
     }
 
+    public void askToInventory() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
+        builder.setCancelable(false);
+        builder.setTitle("New Inventory");
+        builder.setMessage("Would you like to start a new inventory with this data?");
+        builder.setNegativeButton("no", null);
+        builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
+                finish();
+            }
+        });
+        builder.create().show();
+    }
+
     public int getLocationCount() {
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + LocationTable.NAME + ";", null);
         cursor.moveToFirst();
@@ -769,7 +778,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 int lineIndex = 0;
 
                 //
-                String tempText = BuildConfig.APPLICATION_ID.split(Pattern.quote("."))[2] + "|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
+                String tempText = BuildConfig.APPLICATION_ID.split(Pattern.quote("."))[2] + ".location|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
                 printStream.print(tempText);
                 printStream.flush();
                 lineIndex++;
