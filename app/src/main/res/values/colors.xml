@@ -18,11 +18,8 @@
 
     <!--color name="misplaced_scanned_preloaded_item_color">#FFE99797</color-->
     <!--color name="not_misplaced_scanned_preloaded_item_color">#FFA6D7A8</color-->
-    <color name="misplaced_scanned_preloaded_item_color">#7FF44336</color>
-    <color name="not_misplaced_scanned_preloaded_item_color">#7F4CAF50</color>
+    <color name="misplaced_scanned_preloaded_item_color">#5FF44336</color>
+    <color name="not_misplaced_scanned_preloaded_item_color">#5F4CAF50</color>
     <color name="not_misplaced_preloaded_item_color">#FFFFFFFF</color>
-    <color name="scanned_item_color">#FFFFFFFF</color>
-    <color name="ok_location_color">#8BC34A</color>
-    <color name="warning_location_color">#FBC02D</color>
-    <color name="error_location_color">#FF1744</color>
+    <color name="scanned_item_color">#5FFFEB3B</color>
 </resources>

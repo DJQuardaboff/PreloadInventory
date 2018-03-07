@@ -7,20 +7,20 @@
 
     <item
         android:id="@+id/action_save_to_file"
-        android:icon="@drawable/ic_save_white_24dp"
+        android:icon="@drawable/save"
         android:title="@string/action_save_to_file_string"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_cancel_save"
-        android:icon="@drawable/ic_clear_white_24dp"
+        android:icon="@drawable/cancel"
         android:title="@string/action_cancel_save_string"
         android:visible="false"
         app:showAsAction="always" />
 
     <item
         android:id="@+id/action_clear_list"
-        android:icon="@drawable/ic_delete_sweep_white_24dp"
+        android:icon="@drawable/remove_all"
         android:title="@string/action_clear_list_string"
         app:showAsAction="never" />
 

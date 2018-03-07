@@ -59,7 +59,7 @@
         android:id="@+id/menu_button"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:src="@drawable/ic_more_vert_white_24px"
+        android:src="@drawable/more_options"
         android:paddingStart="12dp"
         android:paddingEnd="4dp"
         android:layout_gravity="center_vertical"

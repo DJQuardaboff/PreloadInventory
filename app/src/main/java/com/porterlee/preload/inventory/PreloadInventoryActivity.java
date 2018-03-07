@@ -206,11 +206,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             }
                         }
 
-                        printStream.printf("%s|%s\r\n", locationCursor.getString(locationBarcodeIndex), locationCursor.getString(locationDateTimeIndex));
+                        printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"","\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"","\"\""));
                         printStream.flush();
                     }
 
-                    printStream.printf("%s|%s\r\n", itemCursor.getString(itemBarcodeIndex), itemCursor.getString(itemDateTimeIndex));
+                    printStream.printf("\"%s\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"","\"\""), itemCursor.getString(itemDateTimeIndex).replace("\"","\"\""));
                     printStream.flush();
 
                     itemCursor.moveToNext();
@@ -612,7 +612,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         super.onCreate(savedInstanceState);
         setContentView(R.layout.preload_inventory_layout);
 
-        mSharedPreferences = getPreferences(MODE_PRIVATE);
+        mSharedPreferences = getSharedPreferences("preload_preferences", MODE_PRIVATE);
 
         try {
             initScanner();
@@ -690,6 +690,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         mDatabase = SQLiteDatabase.openOrCreateDatabase(mDatabaseFile, null);
 
+        ItemTable.create(mDatabase);
+        LocationTable.create(mDatabase);
+
         GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_ITEM_ID + " IN ( SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.PRELOAD + "\" ) AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.SCANNER + "\"");
         GET_SCANNED_ITEM_COUNT_WITH_SCANNED_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.SCANNED_LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? AND " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.SCANNER + "\" )");
         GET_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.PRELOAD + "\"");
@@ -709,10 +712,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT MIN(" + ItemTable.Keys.SOURCE + ") AS min_source FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? GROUP BY " + ItemTable.Keys.BARCODE + " ) WHERE min_source = \"" + ItemTable.Source.SCANNER + "\"");
 
         if (!mSharedPreferences.getBoolean("ongoing_inventory", false)) {
-            mDatabase.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
-            ItemTable.create(mDatabase);
-            mDatabase.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
-            LocationTable.create(mDatabase);
+            mDatabase.delete(ItemTable.NAME, null, null);
+            mDatabase.delete(LocationTable.NAME, null, null);
 
             try {
                 readFileIntoPreloadDatabase();
@@ -777,12 +778,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void asyncRefreshItems() {
-        Log.e(TAG, "asyncRefreshItems");
         asyncRefreshItemsScrollToItem(null);
     }
 
     private void asyncRefreshItemsScrollToItem(final String barcode) {
-        Log.e(TAG, "asyncRefreshItemsScrollToItem");
         new AsyncTask<Void, Void, Pair<Cursor, Integer>>() {
             @Override
             protected Pair<Cursor, Integer> doInBackground(Void... voids) {
@@ -812,7 +811,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void asyncScrollToItem(final String barcode) {
-        Log.e(TAG, "asyncScrollToItem");
         final Cursor cursor = mItemRecyclerAdapter.getCursor();
         new AsyncTask<Void, Void, Integer>() {
             @Override
@@ -849,7 +847,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void asyncRefreshLocationsScrollToLocation(final String barcode) {
-        Log.e(TAG, "asyncRefreshLocationsScrollToLocation");
         new AsyncTask<Void, Void, Pair<Cursor, Integer>>() {
             @Override
             protected Pair<Cursor, Integer> doInBackground(Void... voids) {
@@ -880,7 +877,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void asyncScrollToLocation(final String barcode) {
-        Log.e(TAG, "asyncScrollToLocation");
         final Cursor cursor = mLocationRecyclerAdapter.getCursor();
         new AsyncTask<Void, Void, Integer>() {
             @Override
@@ -924,7 +920,17 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
             long scannedItemCount = GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.simpleQueryForLong();
 
-            if (mCurrentMisplacedScannedItemCount > 0) {
+            if (mCurrentMisplacedScannedItemCount > 0 && scannedItemCount > 0) {
+                if (!mSelectedLocationStatus.equals(LocationTable.Status.WARNING_ERROR)) {
+                    ContentValues locationStatusValues = new ContentValues(1);
+                    locationStatusValues.put(PreloadInventoryDatabase.STATUS, LocationTable.Status.WARNING_ERROR);
+
+                    if (mDatabase.update(LocationTable.NAME, locationStatusValues, LocationTable.Keys.ID + " = ? AND " + LocationTable.Keys.SOURCE + " = ?", new String[]{String.valueOf(mSelectedPreloadedLocationId), LocationTable.Source.PRELOAD}) < 1)
+                        throw new SQLiteException("Could not update status of preloaded location: No preloaded location found with an id of " + mSelectedPreloadedLocationId);
+
+                    refreshLocations = true;
+                }
+            } else if (mCurrentMisplacedScannedItemCount > 0) {
                 if (!mSelectedLocationStatus.equals(LocationTable.Status.ERROR)) {
                     ContentValues locationStatusValues = new ContentValues(1);
                     locationStatusValues.put(PreloadInventoryDatabase.STATUS, LocationTable.Status.ERROR);
@@ -1127,27 +1133,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING))
                                 return;
 
-                            mChangedSinceLastArchive = true;
-
-                            //int deletedCount = mDatabase.delete(ItemTable.NAME, "1", null);
-                            //mDatabase.delete(ItemTable.NAME, null, null);
-                            //mDatabase.delete(LocationTable.NAME, null, null);
-
                             mDatabase.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
-
                             mDatabase.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
 
-                            //if (itemCount + containerCount != deletedCount)
-                            //Log.v(TAG, "Detected inconsistencies with number of items while deleting");
-
-                            /*mLocationRecyclerView.setSelectedItem(-1);
-                            mSelectedLocationSource = "";
-                            mSelectedLocationStatus = "";
-                            mSelectedPreloadedLocationId = -1;
-                            mSelectedScannedLocationId = -1;
-                            mSelectedLocationBarcode = "";
-                            asyncRefreshLocations();
-                            updateInfo();*/
+                            //noinspection ResultOfMethodCallIgnored
+                            mOutputFile.delete();
 
                             mSharedPreferences.edit().putBoolean("ongoing_inventory", false).apply();
 
@@ -1298,7 +1288,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void updateInfo() {
-        //Log.v(TAG, "Updating info");
         TextView scannedItemsTextView = findViewById(R.id.items_scanned);
         TextView misplacedItemsTextView = findViewById(R.id.misplaced_items_text_view);
         if (mLocationRecyclerView.getSelectedItem() < 0) {
@@ -1449,7 +1438,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         return mDatabase.insert(LocationTable.NAME, null, newLocation);
     }
 
-    void randomScan() {
+    /*void randomScan() {
         if (mCurrentPreloadedItemCount < 1)
             return;
 
@@ -1467,7 +1456,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             }
             cursor.moveToNext();
         }
-    }
+    }*/
 
     void vibrate() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -1479,7 +1468,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
     private class LocationViewHolder extends RecyclerView.ViewHolder {
         private InvertedTextProgressbar locationProgressBar;
-        private ImageView locationSymbol;
+        private ImageView locationWarningSymbol;
+        private ImageView locationErrorSymbol;
         private View locationProgressBarBackground;
         private long id = -1;
         private long maxId = -1;
@@ -1496,10 +1486,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             super(itemView);
             locationProgressBarBackground = itemView.findViewById(R.id.location_progress_bar_background);
             locationProgressBar = itemView.findViewById(R.id.location_progress_bar);
+            locationProgressBar.setTextPivot((int) (8 * getResources().getDisplayMetrics().density), -1);
             locationProgressBar.getTextPaint().setTextAlign(Paint.Align.LEFT);
-            locationProgressBar.setTextPivot((int) (8f * getResources().getDisplayMetrics().density), -1);
             locationProgressBar.getTextInvertedPaint().setTextAlign(Paint.Align.LEFT);
-            locationSymbol = itemView.findViewById(R.id.location_symbol);
+            locationWarningSymbol = itemView.findViewById(R.id.location_warning_symbol);
+            locationErrorSymbol = itemView.findViewById(R.id.location_error_symbol);
             itemView.setClickable(true);
             /*itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -1535,22 +1526,40 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             }
 
             if (source.equals(LocationTable.Source.PRELOAD)) {
-                if (progress == 1f)
+                /*if (progress == 1f)
                     locationSymbol.setImageResource(R.drawable.ic_check_box_black_24dp);
                 else if (progress == 0f)
                     locationSymbol.setImageResource(R.drawable.ic_check_box_outline_blank_black_24dp);
                 else
-                    locationSymbol.setImageResource(R.drawable.ic_indeterminate_check_box_black_24dp);
+                    locationSymbol.setImageResource(R.drawable.ic_indeterminate_check_box_black_24dp);*/
 
-                locationSymbol.setColorFilter(ResourcesCompat.getColor(getResources(), status.equals(LocationTable.Status.WARNING) ? R.color.warning_location_color : (status.equals(LocationTable.Status.ERROR) ? R.color.error_location_color : R.color.ok_location_color), null));
+                //locationSymbol.setColorFilter(ResourcesCompat.getColor(getResources(), status.equals(LocationTable.Status.WARNING) ? R.color.warning_location_color : (status.equals(LocationTable.Status.ERROR) ? R.color.error_location_color : (status.equals(LocationTable.Status.WARNING_ERROR) ? R.color.warning_error_location_color : R.color.ok_location_color)), null));
 
-            } else
-                locationSymbol.setImageResource(0);
+                if (status.equals(LocationTable.Status.WARNING)) {
+                    locationWarningSymbol.setVisibility(View.VISIBLE);
+                    locationErrorSymbol.setVisibility(View.GONE);
+                }
+
+                if (status.equals(LocationTable.Status.ERROR)) {
+                    locationWarningSymbol.setVisibility(View.GONE);
+                    locationErrorSymbol.setVisibility(View.VISIBLE);
+                }
+
+                if (status.equals(LocationTable.Status.WARNING_ERROR)) {
+                    locationWarningSymbol.setVisibility(View.VISIBLE);
+                    locationErrorSymbol.setVisibility(View.VISIBLE);
+                }
+            } else {
+                locationWarningSymbol.setVisibility(View.GONE);
+                locationErrorSymbol.setVisibility(View.GONE);
+            }
 
             locationProgressBar.setProgress(Math.round(progress * locationProgressBar.getMaxProgress()));
 
             locationProgressBarBackground.setBackground(ContextCompat.getDrawable(PreloadInventoryActivity.this, source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? R.drawable.preloaded_location_progress_bar_selected_background : R.drawable.preloaded_location_progress_bar_deselected_background) : (isSelected ? R.drawable.scanned_location_progress_bar_selected_background : R.drawable.scanned_location_progress_bar_deselected_background)));
+
             locationProgressBar.setText(source.equals(LocationTable.Source.PRELOAD) ? description : barcode);
+            //locationProgressBar.setText(barcode);
             locationProgressBar.getTextPaint().setColor(ResourcesCompat.getColor(getResources(), source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? R.color.selected_preloaded_location_text_color : R.color.deselected_preloaded_location_text_color) : (isSelected ? R.color.selected_scanned_location_text_color : R.color.deselected_scanned_location_text_color), null));
             locationProgressBar.getTextInvertedPaint().setColor(isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_preloaded_location_inverted_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_preloaded_location_inverted_text_color, null));
             locationProgressBar.setImageResource(isSelected ? R.drawable.preloaded_location_progress_bar_selected_foreground : R.drawable.preloaded_location_progress_bar_deselected_foreground);

@@ -233,7 +233,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         mFileObserver = new FileObserver(PreloadInventoryActivity.INPUT_PATH.getAbsolutePath()) {
             @Override
             public void onEvent(int event, @Nullable String path) {
-                if ((event & (FileObserver.CLOSE_WRITE | FileObserver.CREATE | FileObserver.MOVED_TO)) != 0) {
+                if ((event & (FileObserver.CREATE | FileObserver.MOVED_TO)) != 0) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -250,7 +250,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         locationRecyclerAdapter = new RecyclerView.Adapter() {
             @Override
             public long getItemId(int i) {
-                return ((PreloadLocationViewHolder) locationRecyclerView.findViewHolderForAdapterPosition(i)).getId();
+                return i;
             }
 
             @Override
@@ -522,7 +522,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
         builder.setCancelable(false);
         builder.setTitle("New Inventory");
-        builder.setMessage("Would you like to start a new inventory with this data?");
+        builder.setMessage(
+                "Would you like to start a new inventory with this data?\n" +
+                "\n" +
+                "This will overwrite any inventory previously started."
+        );
         builder.setNegativeButton("no", null);
         builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
             @Override
@@ -794,7 +798,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                         progress = tempProgress;
                     }
 
-                    printStream.printf("%s|%s\r\n", locationCursor.getString(locationBarcodeIndex), locationCursor.getString(locationDateTimeIndex));
+                    printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"","\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"","\"\""));
                     printStream.flush();
                     locationCursor.moveToNext();
                     lineIndex++;

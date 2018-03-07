@@ -92,6 +92,7 @@ public class PreloadInventoryDatabase {
         public static class Status {
             public static final String WARNING = "W";
             public static final String ERROR = "E";
+            public static final String WARNING_ERROR = "WE";
         }
     }
 }

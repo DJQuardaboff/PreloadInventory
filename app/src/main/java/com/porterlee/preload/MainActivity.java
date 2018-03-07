@@ -11,7 +11,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.porterlee.preload.inventory.PreloadInventoryActivity;
@@ -42,12 +41,17 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     @Nullable
     public Intent getPreloadIntent(Context context) throws IOException {
-        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
+        SharedPreferences sharedPreferences = getSharedPreferences("preload_preferences", MODE_PRIVATE);
 
         //noinspection ResultOfMethodCallIgnored
         PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.INPUT_PATH.mkdirs();
+
+        if (new File(PreloadInventoryActivity.INPUT_PATH, "data.txt").exists()) {
+            sharedPreferences.edit().putBoolean("ongoing_inventory", false).apply();
+            return new Intent(context, PreloadInventoryActivity.class);
+        }
 
         return new Intent(context, sharedPreferences.getBoolean("ongoing_inventory", false) ? PreloadInventoryActivity.class : PreloadLocationsActivity.class);
         /*

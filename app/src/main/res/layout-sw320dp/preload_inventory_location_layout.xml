@@ -2,7 +2,6 @@
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="28dp"
     android:orientation="horizontal"
@@ -20,8 +19,7 @@
         app:layout_constraintTop_toTopOf="@id/location_progress_bar"
         app:layout_constraintBottom_toBottomOf="@id/location_progress_bar"
         app:layout_constraintStart_toStartOf="@id/location_progress_bar"
-        app:layout_constraintEnd_toEndOf="@id/location_progress_bar"
-        tools:ignore="RtlSymmetry" />
+        app:layout_constraintEnd_toEndOf="@id/location_progress_bar"/>
 
     <com.danilomendes.progressbar.InvertedTextProgressbar
         android:src="@drawable/preloaded_location_progress_bar_selected_foreground"
@@ -30,28 +28,45 @@
         android:layout_height="0dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
-        android:layout_marginEnd="2dp"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="0dp"
         app:min_progress="0"
         app:max_progress="100"
         app:text_size="18sp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/location_symbol"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:ignore="RtlSymmetry" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/warning_layout"/>
 
-    <ImageView
-        android:id="@+id/location_symbol"
+    <LinearLayout
+        android:id="@+id/warning_layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="2dp"
-        android:src="@drawable/ic_check_box_outline_blank_black_24dp"
-        android:tint="@color/ok_location_color"
+        android:orientation="horizontal"
+        android:layout_marginStart="1dp"
+        android:layout_marginEnd="2dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:clickable="false"
-        tools:ignore="ContentDescription" />
+        app:layout_constraintStart_toEndOf="@id/location_progress_bar"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/location_warning_symbol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/warning"
+            android:visibility="gone"
+            android:contentDescription="Item(s) not found in preloaded data"/>
+
+        <ImageView
+            android:id="@+id/location_error_symbol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/error"
+            android:visibility="gone"
+            android:contentDescription="Item(s) misplaced"/>
+
+    </LinearLayout>
 
     <!--TextView
         style="@android:style/TextAppearance.DeviceDefault.Medium"
