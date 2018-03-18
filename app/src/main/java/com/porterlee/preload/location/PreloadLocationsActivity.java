@@ -52,10 +52,8 @@ import com.porterlee.preload.R;
 import com.porterlee.preload.inventory.PreloadInventoryActivity;
 import com.porterlee.preload.location.PreloadLocationsDatabase.LocationTable;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.regex.Pattern;
@@ -230,10 +228,10 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             }
         });*/
 
-        mFileObserver = new FileObserver(PreloadInventoryActivity.INPUT_PATH.getAbsolutePath()) {
+        mFileObserver = new FileObserver(PreloadInventoryActivity.EXTERNAL_PATH.getAbsolutePath()) {
             @Override
             public void onEvent(int event, @Nullable String path) {
-                if ((event & (FileObserver.CREATE | FileObserver.MOVED_TO)) != 0) {
+                if ((event & (FileObserver.CREATE | FileObserver.MOVED_TO)) != 0 && PreloadInventoryActivity.INPUT_FILE.exists()) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -260,47 +258,15 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 return count;
             }
 
+            @NonNull
             @Override
-            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
                 final PreloadLocationViewHolder preloadLocationViewHolder = new PreloadLocationViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_locations_item_layout, parent, false));
-                preloadLocationViewHolder.expandedMenuButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        PopupMenu popup = new PopupMenu(PreloadLocationsActivity.this, view);
-                        MenuInflater inflater = popup.getMenuInflater();
-                        inflater.inflate(R.menu.popup_menu, popup.getMenu());
-                        popup.getMenu().findItem(R.id.remove_item).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                            @Override
-                            public boolean onMenuItemClick(MenuItem menuItem) {
-                                if (saveTask != null) {
-                                    Toast.makeText(PreloadLocationsActivity.this, "Cannot edit list while saving", Toast.LENGTH_SHORT).show();
-                                    return true;
-                                }
-                                AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-                                builder.setCancelable(true);
-                                builder.setTitle("Remove location");
-                                builder.setMessage("Are you sure you want to remove location \"" + preloadLocationViewHolder.getBarcode() + "\"?");
-                                builder.setNegativeButton("no", null);
-                                builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        //Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
-                                        removeLocation(preloadLocationViewHolder);
-                                    }
-                                });
-                                builder.create().show();
-
-                                return true;
-                            }
-                        });
-                        popup.show();
-                    }
-                });
                 return preloadLocationViewHolder;
             }
 
             @Override
-            public void onBindViewHolder(final RecyclerView.ViewHolder holder, final int position) {
+            public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
                 Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.ID + ", " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " ORDER BY " + LocationTable.Keys.ID + " DESC LIMIT 1 OFFSET ?;", new String[] {String.valueOf(position)});
                 cursor.moveToFirst();
 
@@ -588,19 +554,19 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
     private void scanBarcode(String barcode) {
         if (isItem(barcode) || isContainer(barcode)) {
-            vibrate(300);
+            vibrate();
             Toast.makeText(this, "Cannot accept items in preload location mode", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (!isLocation(barcode)) {
-            vibrate(300);
+            vibrate();
             Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (saveTask != null) {
-            vibrate(300);
+            vibrate();
             Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -609,7 +575,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
         if (cursor.getCount() > 0) {
             cursor.close();
-            vibrate(300);
+            vibrate();
             Toast.makeText(this, "Location was already scanned", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -618,11 +584,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         addLocation(barcode);
     }
 
-    private void vibrate(long millis) {
+    private void vibrate() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(millis, VibrationEffect.DEFAULT_AMPLITUDE));
+            vibrator.vibrate(VibrationEffect.createOneShot((long) 300, VibrationEffect.DEFAULT_AMPLITUDE));
         } else {
-            vibrator.vibrate(millis);
+            vibrator.vibrate((long) 300);
         }
     }
 
@@ -634,9 +600,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         newItem.put(PreloadLocationsDatabase.DATE_TIME, String.valueOf(formatDate(System.currentTimeMillis())));
 
         if (db.insert(LocationTable.NAME, null, newItem) == -1) {
-            Log.e(TAG, "Error adding item \"" + barcode + "\" to the inventory");
-            Toast.makeText(this, "Error adding item \"" + barcode + "\" to the inventory", Toast.LENGTH_SHORT).show();
-            vibrate(300);
+            Log.e(TAG, "Error adding location \"" + barcode + "\" to the list");
+            Toast.makeText(this, "Error adding location \"" + barcode + "\" to the list", Toast.LENGTH_SHORT).show();
+            vibrate();
             return;
         }
 
@@ -675,7 +641,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
             updateInfo();
         } else {
-            vibrate(300);
+            vibrate();
             Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[] {String.valueOf(holder.getId())});
             String barcode = "";
 
@@ -726,25 +692,52 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
     class PreloadLocationViewHolder extends RecyclerView.ViewHolder {
         TextView locationTextView;
-        private ColorStateList locationBarcodeTextViewDefaultColor;
         private ImageButton expandedMenuButton;
         private String barcode;
+        private long id = -1;
+
 
         public long getId() {
             return id;
         }
 
-        private long id = -1;
-
-        public String getBarcode() {
-            return barcode;
-        }
-
         PreloadLocationViewHolder(final View itemView) {
             super(itemView);
             locationTextView = itemView.findViewById(R.id.location_text_view);
-            locationBarcodeTextViewDefaultColor = locationTextView.getTextColors();
             expandedMenuButton = itemView.findViewById(R.id.menu_button);
+            expandedMenuButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    PopupMenu popup = new PopupMenu(PreloadLocationsActivity.this, view);
+                    MenuInflater inflater = popup.getMenuInflater();
+                    inflater.inflate(R.menu.popup_menu_location, popup.getMenu());
+                    popup.getMenu().findItem(R.id.remove_location).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem menuItem) {
+                            if (saveTask != null) {
+                                Toast.makeText(PreloadLocationsActivity.this, "Cannot edit list while saving", Toast.LENGTH_SHORT).show();
+                                return true;
+                            }
+                            AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
+                            builder.setCancelable(true);
+                            builder.setTitle("Remove location");
+                            builder.setMessage("Are you sure you want to remove location \"" + barcode + "\"?");
+                            builder.setNegativeButton("no", null);
+                            builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    //Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
+                                    removeLocation(PreloadLocationViewHolder.this);
+                                }
+                            });
+                            builder.create().show();
+
+                            return true;
+                        }
+                    });
+                    popup.show();
+                }
+            });
         }
 
         void bindViews(long id, String barcode) {

@@ -16,7 +16,6 @@ import android.widget.Toast;
 import com.porterlee.preload.inventory.PreloadInventoryActivity;
 import com.porterlee.preload.location.PreloadLocationsActivity;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -46,9 +45,9 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         //noinspection ResultOfMethodCallIgnored
         PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
         //noinspection ResultOfMethodCallIgnored
-        PreloadInventoryActivity.INPUT_PATH.mkdirs();
+        PreloadInventoryActivity.EXTERNAL_PATH.mkdirs();
 
-        if (new File(PreloadInventoryActivity.INPUT_PATH, "data.txt").exists()) {
+        if (PreloadInventoryActivity.INPUT_FILE.exists()) {
             sharedPreferences.edit().putBoolean("ongoing_inventory", false).apply();
             return new Intent(context, PreloadInventoryActivity.class);
         }

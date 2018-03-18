@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <!--<item
+        android:id="@+id/take_picture"
+        android:title="@string/take_picture" />
+
+    <item
+        android:id="@+id/view_pictures"
+        android:title="@string/view_pictures" />-->
+
+    <item
+        android:id="@+id/remove_item"
+        android:title="@string/remove_item_popup_text" />
+
+</menu>

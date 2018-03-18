@@ -80,6 +80,7 @@ import static com.porterlee.preload.MainActivity.DATE_FORMAT;
 
 import com.porterlee.preload.inventory.PreloadInventoryDatabase.ItemTable;
 import com.porterlee.preload.inventory.PreloadInventoryDatabase.LocationTable;
+import com.porterlee.preload.location.PreloadLocationsDatabase;
 
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
@@ -89,8 +90,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private static final String ITEM_LIST_QUERY = "SELECT MIN(" + ItemTable.Keys.ID + ") AS _id, MAX(" + ItemTable.Keys.ID + ") AS max_id, MAX(" + ItemTable.Keys.PRELOADED_ITEM_ID + ") AS preloaded_item_id, MAX(" + ItemTable.Keys.SCANNED_LOCATION_ID + ") AS scanned_location_id, MAX(" + ItemTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, " + ItemTable.Keys.BARCODE + " AS barcode, MAX(" + ItemTable.Keys.CASE_NUMBER + ") AS case_number, MAX(" + ItemTable.Keys.ITEM_NUMBER + ") AS item_number, MAX(" + ItemTable.Keys.PACKAGING + ") AS packaging, MAX(" + ItemTable.Keys.DESCRIPTION + ") AS description, MIN(" + ItemTable.Keys.SOURCE + ") AS source, MAX(" + ItemTable.Keys.STATUS + ") AS status, MAX(" + ItemTable.Keys.ITEM_TYPE + ") AS item_type, MAX(" + ItemTable.Keys.DATE_TIME + ") AS date_time FROM " + ItemTable.NAME + " WHERE preloaded_location_id = ? OR scanned_location_id IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.SCANNER + "\" AND " + LocationTable.Keys.BARCODE + " = ? ) GROUP BY barcode ORDER BY source, _id";
     @Language("RoomSql")
     private static final String LOCATION_LIST_QUERY = "SELECT MIN(" + LocationTable.Keys.ID + ") AS _id, MAX(" + LocationTable.Keys.ID + ") AS max_id, MAX(" + LocationTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, MAX(" + LocationTable.Keys.PROGRESS + ") AS progress, " + LocationTable.Keys.BARCODE + " AS barcode, MAX(" + LocationTable.Keys.DESCRIPTION + ") AS description, MIN(" + LocationTable.Keys.SOURCE + ") AS source, MAX(" + LocationTable.Keys.STATUS + ") AS status, MAX(" + LocationTable.Keys.DATE_TIME + ") AS date_time FROM " + LocationTable.NAME + " WHERE _id NOT NULL GROUP BY barcode ORDER BY source, _id";
-    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
-    public static final File INPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
+    public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
+    public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "output.txt");
+    public static final File INPUT_FILE = new File(EXTERNAL_PATH, "data.txt");
     private static final String TAG = PreloadInventoryActivity.class.getSimpleName();
     private SQLiteStatement GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT;
     private SQLiteStatement GET_PRELOADED_LOCATION_ID_OF_LOCATION_BARCODE_STATEMENT;
@@ -111,8 +113,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     //private SQLiteStatement GET_STATUS_OF_PRELOADED_LOCATION_STATEMENT;
     private SharedPreferences mSharedPreferences;
     private Vibrator mVibrator;
-    private File mInputFile;
-    private File mOutputFile;
     private File mDatabaseFile;
     private File mArchiveDirectory;
     private boolean mChangedSinceLastArchive;
@@ -165,8 +165,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             try {
                 //noinspection ResultOfMethodCallIgnored
-                OUTPUT_PATH.mkdirs();
-                final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", OUTPUT_PATH);
+                EXTERNAL_PATH.mkdirs();
+                final File TEMP_OUTPUT_FILE = File.createTempFile("tmp", ".txt", EXTERNAL_PATH);
                 PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
 
                 int updateNum = 0;
@@ -222,7 +222,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 itemCursor.close();
                 locationCursor.close();
 
-                if (mOutputFile.exists() && !mOutputFile.delete()) {
+                if (!OUTPUT_FILE.delete() && OUTPUT_FILE.exists()) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
                     Log.e(TAG, "Could not delete existing output file");
@@ -232,19 +232,19 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     return new Pair<>("DeleteFailed", "Could not delete existing output file");
                 }
 
-                MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { mOutputFile.getParent() },  null, null);
+                MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { EXTERNAL_PATH.getAbsolutePath() },  null, null);
 
-                if (!TEMP_OUTPUT_FILE.renameTo(mOutputFile)) {
+                if (!TEMP_OUTPUT_FILE.renameTo(OUTPUT_FILE) && TEMP_OUTPUT_FILE.exists() && !OUTPUT_FILE.exists()) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
-                    Log.e(TAG, String.format("Could not rename temp file to \"%s\"", mOutputFile.getName()));
+                    Log.e(TAG, String.format("Could not rename temp file to \"%s\"", OUTPUT_FILE.getName()));
 
                     itemCursor.close();
                     locationCursor.close();
-                    return new Pair<>("RenameFailed", String.format("Could not rename temp file to \"%s\"", mOutputFile.getName()));
+                    return new Pair<>("RenameFailed", String.format("Could not rename temp file to \"%s\"", OUTPUT_FILE.getName()));
                 }
 
-                MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { mOutputFile.getParent() },  null, null);
+                MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { OUTPUT_FILE.getParent() },  null, null);
             } catch (FileNotFoundException e){
                 Log.e(TAG, "FileNotFoundException occurred while saving: " + e.getMessage());
                 e.printStackTrace();
@@ -623,19 +623,14 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
 
         mArchiveDirectory = new File(getFilesDir().getAbsolutePath(), PreloadInventoryDatabase.ARCHIVE_DIRECTORY);
-        if (!mArchiveDirectory.exists() && !mArchiveDirectory.mkdirs())
+        if (!mArchiveDirectory.mkdirs() && !mArchiveDirectory.exists())
             Log.w(TAG, "Archive directory does not exist and could not be created, this may cause a problem");
 
-        mInputFile = new File(INPUT_PATH.getAbsolutePath(), "data.txt");
-        if (!mInputFile.exists() && !INPUT_PATH.mkdirs())
-            Log.w(TAG, "Input directory does not exist and could not be created, this may cause a problem");
+        if (!EXTERNAL_PATH.mkdirs() && !EXTERNAL_PATH.exists())
+            Log.w(TAG, "External directory does not exist and could not be created, this may cause a problem");
 
-        mOutputFile = new File(OUTPUT_PATH.getAbsolutePath(), "output.txt");
-        if (!mOutputFile.exists() && !OUTPUT_PATH.mkdirs())
-            Log.w(TAG, "Output directory does not exist and could not be created, this may cause a problem");
-
-        //mDatabaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY, PreloadInventoryDatabase.FILE_NAME);
-        mDatabaseFile = new File(mInputFile.getParent(), "/test.db");
+        mDatabaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY, PreloadInventoryDatabase.FILE_NAME);
+        //mDatabaseFile = new File(mInputFile.getParent(), "/test.db");
         if (!mDatabaseFile.exists() && !mDatabaseFile.getParentFile().mkdirs())
             Log.w(TAG, "Output directory does not exist and could not be created, this may cause a problem");
 
@@ -673,7 +668,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if (!mDatabaseFile.delete()) {
+                if (!mDatabaseFile.delete() && mDatabaseFile.exists()) {
                     Toast.makeText(PreloadInventoryActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
                     finish();
                     return;
@@ -709,7 +704,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.PRELOAD + "\" AND " + ItemTable.Keys.BARCODE + " = ?");
         GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.PRELOAD + "\" AND " + LocationTable.Keys.BARCODE + " = ?");
         //GET_STATUS_OF_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT " + LocationTable.Keys.STATUS + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.PRELOAD + "\" AND " + LocationTable.Keys.ID + " = ?");
-        GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT MIN(" + ItemTable.Keys.SOURCE + ") AS min_source FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? GROUP BY " + ItemTable.Keys.BARCODE + " ) WHERE min_source = \"" + ItemTable.Source.SCANNER + "\"");
+        GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT MIN(" + ItemTable.Keys.SOURCE + ") AS min_source FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.STATUS + " != ? GROUP BY " + ItemTable.Keys.BARCODE + " ) WHERE min_source = ?");
 
         if (!mSharedPreferences.getBoolean("ongoing_inventory", false)) {
             mDatabase.delete(ItemTable.NAME, null, null);
@@ -725,6 +720,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             }
 
             mSharedPreferences.edit().putBoolean("ongoing_inventory", true).apply();
+            if (INPUT_FILE.renameTo(new File(mDatabaseFile.getParent(), "data.txt")))
+                throw new RuntimeException("Could not move input file to app data directory");
         }
 
         mProgressBar = findViewById(R.id.progress_saving);
@@ -917,7 +914,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         if (mSelectedLocationSource.equals(LocationTable.Source.PRELOAD)) {
             boolean refreshLocations = false;
+
             GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
+            GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindString(2, ItemTable.Status.MISPLACED);
+            GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindString(3, ItemTable.Source.SCANNER);
             long scannedItemCount = GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.simpleQueryForLong();
 
             if (mCurrentMisplacedScannedItemCount > 0 && scannedItemCount > 0) {
@@ -1133,11 +1133,29 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING))
                                 return;
 
-                            mDatabase.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
-                            mDatabase.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
+                            //mDatabase.execSQL("DROP TABLE IF EXISTS " + ItemTable.NAME);
+                            //mDatabase.execSQL("DROP TABLE IF EXISTS " + LocationTable.NAME);
+
+                            mDatabase.close();
+                            //noinspection ResultOfMethodCallIgnored
+                            if (!mDatabaseFile.delete())
+                                throw new RuntimeException("Database file could not be deleted");
+
+                            File locationsDatabaseFile = new File(getFilesDir() + "/" + PreloadLocationsDatabase.DIRECTORY, PreloadLocationsDatabase.FILE_NAME);
 
                             //noinspection ResultOfMethodCallIgnored
-                            mOutputFile.delete();
+                            if (locationsDatabaseFile.exists() && !locationsDatabaseFile.delete())
+                                throw new RuntimeException("Locations database file could not be deleted");
+
+                            //noinspection ResultOfMethodCallIgnored
+                            if (!INPUT_FILE.delete() && INPUT_FILE.exists())
+                                throw new RuntimeException("Input file could not be deleted");
+
+                            //noinspection ResultOfMethodCallIgnored
+                            if (!OUTPUT_FILE.delete() && OUTPUT_FILE.exists())
+                                throw new RuntimeException("Output file could not be deleted");
+
+                            MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { OUTPUT_FILE.getParent() },  null, null);
 
                             mSharedPreferences.edit().putBoolean("ongoing_inventory", false).apply();
 
@@ -1306,7 +1324,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
     public void readFileIntoPreloadDatabase() throws ParseException {
         try {
-            LineNumberReader lineReader = new LineNumberReader(new FileReader(mInputFile));
+            LineNumberReader lineReader = new LineNumberReader(new FileReader(INPUT_FILE));
             String line;
             String[] elements;
             long currentLocationId = -1;
@@ -1467,6 +1485,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private class LocationViewHolder extends RecyclerView.ViewHolder {
+        private TextView locationTextView;
         private InvertedTextProgressbar locationProgressBar;
         private ImageView locationWarningSymbol;
         private ImageView locationErrorSymbol;
@@ -1484,6 +1503,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         LocationViewHolder(final View itemView) {
             super(itemView);
+            locationTextView = itemView.findViewById(R.id.location_text_view);
             locationProgressBarBackground = itemView.findViewById(R.id.location_progress_bar_background);
             locationProgressBar = itemView.findViewById(R.id.location_progress_bar);
             locationProgressBar.setTextPivot((int) (8 * getResources().getDisplayMetrics().density), -1);
@@ -1535,19 +1555,24 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
                 //locationSymbol.setColorFilter(ResourcesCompat.getColor(getResources(), status.equals(LocationTable.Status.WARNING) ? R.color.warning_location_color : (status.equals(LocationTable.Status.ERROR) ? R.color.error_location_color : (status.equals(LocationTable.Status.WARNING_ERROR) ? R.color.warning_error_location_color : R.color.ok_location_color)), null));
 
-                if (status.equals(LocationTable.Status.WARNING)) {
-                    locationWarningSymbol.setVisibility(View.VISIBLE);
-                    locationErrorSymbol.setVisibility(View.GONE);
-                }
 
-                if (status.equals(LocationTable.Status.ERROR)) {
-                    locationWarningSymbol.setVisibility(View.GONE);
-                    locationErrorSymbol.setVisibility(View.VISIBLE);
-                }
-
-                if (status.equals(LocationTable.Status.WARNING_ERROR)) {
-                    locationWarningSymbol.setVisibility(View.VISIBLE);
-                    locationErrorSymbol.setVisibility(View.VISIBLE);
+                switch (status) {
+                    case LocationTable.Status.WARNING_ERROR:
+                        locationWarningSymbol.setVisibility(View.VISIBLE);
+                        locationErrorSymbol.setVisibility(View.VISIBLE);
+                        break;
+                    case LocationTable.Status.WARNING:
+                        locationWarningSymbol.setVisibility(View.VISIBLE);
+                        locationErrorSymbol.setVisibility(View.GONE);
+                        break;
+                    case LocationTable.Status.ERROR:
+                        locationWarningSymbol.setVisibility(View.GONE);
+                        locationErrorSymbol.setVisibility(View.VISIBLE);
+                        break;
+                    default:
+                        locationWarningSymbol.setVisibility(View.GONE);
+                        locationErrorSymbol.setVisibility(View.GONE);
+                        break;
                 }
             } else {
                 locationWarningSymbol.setVisibility(View.GONE);
@@ -1559,6 +1584,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             locationProgressBarBackground.setBackground(ContextCompat.getDrawable(PreloadInventoryActivity.this, source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? R.drawable.preloaded_location_progress_bar_selected_background : R.drawable.preloaded_location_progress_bar_deselected_background) : (isSelected ? R.drawable.scanned_location_progress_bar_selected_background : R.drawable.scanned_location_progress_bar_deselected_background)));
 
             locationProgressBar.setText(source.equals(LocationTable.Source.PRELOAD) ? description : barcode);
+            //locationTextView.setText(source.equals(LocationTable.Source.PRELOAD) ? description : barcode);
             //locationProgressBar.setText(barcode);
             locationProgressBar.getTextPaint().setColor(ResourcesCompat.getColor(getResources(), source.equals(LocationTable.Source.PRELOAD) ? (isSelected ? R.color.selected_preloaded_location_text_color : R.color.deselected_preloaded_location_text_color) : (isSelected ? R.color.selected_scanned_location_text_color : R.color.deselected_scanned_location_text_color), null));
             locationProgressBar.getTextInvertedPaint().setColor(isSelected ? ResourcesCompat.getColor(getResources(), R.color.selected_preloaded_location_inverted_text_color, null) : ResourcesCompat.getColor(getResources(), R.color.deselected_preloaded_location_inverted_text_color, null));
@@ -1596,7 +1622,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 @Override
                 public void onClick(View v) {
                     final PopupMenu popup = new PopupMenu(PreloadInventoryActivity.this, expandedMenuButton);
-                    popup.getMenuInflater().inflate(R.menu.popup_menu, popup.getMenu());
+                    popup.getMenuInflater().inflate(R.menu.popup_menu_item, popup.getMenu());
                     final MenuItem item = popup.getMenu().findItem(R.id.remove_item);
                     item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                         @Override

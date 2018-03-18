@@ -38,6 +38,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/warning_layout"/>
 
+    <!--TextView
+        android:id="@+id/location_text_view"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:ellipsize="middle"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:textColor="#000000"
+        app:layout_constraintTop_toTopOf="@id/location_progress_bar"
+        app:layout_constraintBottom_toBottomOf="@id/location_progress_bar"
+        app:layout_constraintStart_toStartOf="@id/location_progress_bar"
+        app:layout_constraintEnd_toEndOf="@id/location_progress_bar"/-->
+
     <LinearLayout
         android:id="@+id/warning_layout"
         android:layout_width="wrap_content"
@@ -56,7 +72,8 @@
             android:layout_height="wrap_content"
             android:src="@drawable/warning"
             android:visibility="gone"
-            android:contentDescription="Item(s) not found in preloaded data"/>
+            android:contentDescription="Item(s) not found in preloaded data"
+            android:tooltipText="Item(s) not found in preloaded data"/>
 
         <ImageView
             android:id="@+id/location_error_symbol"
@@ -64,7 +81,8 @@
             android:layout_height="wrap_content"
             android:src="@drawable/error"
             android:visibility="gone"
-            android:contentDescription="Item(s) misplaced"/>
+            android:contentDescription="Item(s) misplaced"
+            android:tooltipText="Item(s) misplaced"/>
 
     </LinearLayout>
 
