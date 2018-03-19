@@ -9,25 +9,31 @@
         android:id="@+id/action_save_to_file"
         android:icon="@drawable/save"
         android:title="@string/action_save_to_file_string"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/action_cancel_save"
         android:icon="@drawable/cancel"
         android:title="@string/action_cancel_save_string"
         android:visible="false"
-        app:showAsAction="always" />
+        app:showAsAction="always"/>
 
     <item
         android:id="@+id/action_clear_list"
         android:icon="@drawable/remove_all"
         android:title="@string/action_clear_list_string"
-        app:showAsAction="never" />
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/action_start_inventory"
+        android:title="@string/action_start_inventory_string"
+        android:enabled="false"
+        app:showAsAction="never"/>
 
     <item
         android:id="@+id/action_continuous"
         android:title="@string/continuous_mode_title"
         android:checkable="true"
-        app:showAsAction="never" />
+        app:showAsAction="never"/>
 
 </menu>

@@ -47,11 +47,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.EXTERNAL_PATH.mkdirs();
 
-        if (PreloadInventoryActivity.INPUT_FILE.exists()) {
-            sharedPreferences.edit().putBoolean("ongoing_inventory", false).apply();
-            return new Intent(context, PreloadInventoryActivity.class);
-        }
-
         return new Intent(context, sharedPreferences.getBoolean("ongoing_inventory", false) ? PreloadInventoryActivity.class : PreloadLocationsActivity.class);
         /*
         File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();

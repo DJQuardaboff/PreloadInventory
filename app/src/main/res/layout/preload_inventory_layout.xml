@@ -113,7 +113,7 @@
         app:mpb_progressStyle="horizontal"
         app:mpb_useIntrinsicPadding="false" />
 
-    <android.support.v7.widget.RecyclerView
+    <com.porterlee.preload.SelectableRecyclerView
         android:id="@+id/item_list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"

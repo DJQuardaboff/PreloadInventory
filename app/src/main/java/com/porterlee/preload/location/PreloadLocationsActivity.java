@@ -239,6 +239,12 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                         }
                     });
                 }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        refreshFileMenuOption();
+                    }
+                });
             }
         };
 
@@ -261,8 +267,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             @NonNull
             @Override
             public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-                final PreloadLocationViewHolder preloadLocationViewHolder = new PreloadLocationViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_locations_item_layout, parent, false));
-                return preloadLocationViewHolder;
+                return new PreloadLocationViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_locations_item_layout, parent, false));
             }
 
             @Override
@@ -309,8 +314,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     protected void onResume() {
         super.onResume();
 
-        mFileObserver.startWatching();
+        refreshFileMenuOption();
 
+        mFileObserver.startWatching();
         resultReciever = new ScanResultReceiver();
         IntentFilter resultFilter = new IntentFilter();
         resultFilter.setPriority(0);
@@ -352,6 +358,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.preload_locations_menu, menu);
+        refreshFileMenuOption();
         loadCurrentScannerOptions();
         return true;
     }
@@ -447,9 +454,17 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                     Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
                 }
                 return true;
+            case R.id.action_start_inventory:
+                askToInventory();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void refreshFileMenuOption() {
+        if (mOptionsMenu != null)
+            mOptionsMenu.findItem(R.id.action_start_inventory).setEnabled(PreloadInventoryActivity.INPUT_FILE.exists());
     }
 
     private void initScanner() throws RemoteException {
@@ -497,8 +512,12 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
-                finish();
+                if (PreloadInventoryActivity.INPUT_FILE.exists()) {
+                    startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
+                    finish();
+                } else {
+                    Toast.makeText(PreloadLocationsActivity.this, "File no longer exists", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         builder.create().show();

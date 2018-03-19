@@ -25,4 +25,5 @@
     <string name="action_clear_list_string">Clear list</string>
     <string name="action_clear_scanned_items_string">Clear scanned items</string>
     <string name="remove_location_popup_text">Remove location</string>
+    <string name="action_start_inventory_string">Start inventory from file</string>
 </resources>
