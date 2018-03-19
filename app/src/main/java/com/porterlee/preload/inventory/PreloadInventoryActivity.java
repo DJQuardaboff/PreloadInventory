@@ -85,7 +85,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class PreloadInventoryActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
     @Language("RoomSql")
-    private static final String ITEM_LIST_QUERY = "SELECT MIN(" + ItemTable.Keys.ID + ") AS _id, MAX(" + ItemTable.Keys.ID + ") AS max_id, MAX(" + ItemTable.Keys.PRELOADED_ITEM_ID + ") AS preloaded_item_id, MAX(" + ItemTable.Keys.SCANNED_LOCATION_ID + ") AS scanned_location_id, MAX(" + ItemTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, " + ItemTable.Keys.BARCODE + " AS barcode, MAX(" + ItemTable.Keys.CASE_NUMBER + ") AS case_number, MAX(" + ItemTable.Keys.ITEM_NUMBER + ") AS item_number, MAX(" + ItemTable.Keys.PACKAGING + ") AS packaging, MAX(" + ItemTable.Keys.DESCRIPTION + ") AS description, MIN(" + ItemTable.Keys.SOURCE + ") AS source, MAX(" + ItemTable.Keys.STATUS + ") AS status, MAX(" + ItemTable.Keys.ITEM_TYPE + ") AS item_type, MAX(" + ItemTable.Keys.DATE_TIME + ") AS date_time FROM " + ItemTable.NAME + " WHERE scanned_location_id IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.SCANNER + "\" AND " + LocationTable.Keys.BARCODE + " = ? ) GROUP BY barcode ORDER BY source, _id";
+    private static final String ITEM_LIST_QUERY = "SELECT MIN(" + ItemTable.Keys.ID + ") AS _id, MAX(" + ItemTable.Keys.ID + ") AS max_id, MAX(" + ItemTable.Keys.PRELOADED_ITEM_ID + ") AS preloaded_item_id, MAX(" + ItemTable.Keys.SCANNED_LOCATION_ID + ") AS scanned_location_id, MAX(" + ItemTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, " + ItemTable.Keys.BARCODE + " AS barcode, MAX(" + ItemTable.Keys.CASE_NUMBER + ") AS case_number, MAX(" + ItemTable.Keys.ITEM_NUMBER + ") AS item_number, MAX(" + ItemTable.Keys.PACKAGING + ") AS packaging, MAX(" + ItemTable.Keys.DESCRIPTION + ") AS description, MIN(" + ItemTable.Keys.SOURCE + ") AS source, MAX(" + ItemTable.Keys.STATUS + ") AS status, MAX(" + ItemTable.Keys.ITEM_TYPE + ") AS item_type, MAX(" + ItemTable.Keys.DATE_TIME + ") AS date_time FROM " + ItemTable.NAME + " WHERE MAX(preloaded_location_id, scanned_location_id) IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? ) GROUP BY barcode ORDER BY source, _id";
     @Language("RoomSql")
     private static final String LOCATION_LIST_QUERY = "SELECT MIN(" + LocationTable.Keys.ID + ") AS _id, MAX(" + LocationTable.Keys.ID + ") AS max_id, MAX(" + LocationTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, MAX(" + LocationTable.Keys.PROGRESS + ") AS progress, " + LocationTable.Keys.BARCODE + " AS barcode, MAX(" + LocationTable.Keys.DESCRIPTION + ") AS description, MIN(" + LocationTable.Keys.SOURCE + ") AS source, MAX(" + LocationTable.Keys.STATUS + ") AS status, MAX(" + LocationTable.Keys.DATE_TIME + ") AS date_time FROM " + LocationTable.NAME + " WHERE _id NOT NULL GROUP BY barcode ORDER BY source, _id";
     public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
@@ -126,6 +126,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private int mCurrentNotMisplacedScannedItemCount;
     private int mCurrentPreloadedItemCount;
     private int mCurrentMisplacedScannedItemCount;
+    private int mCurrentScannedItemCount;
     private SelectableRecyclerView mLocationRecyclerView;
     private RecyclerView mItemRecyclerView;
     private WeakAsyncTask<Void, Float, Pair<String, String>> saveTask;
@@ -930,17 +931,13 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         refreshCurrentPreloadedItemCount();
         refreshCurrentNotMisplacedScannedItemCount();
         refreshCurrentMisplacedScannedItemCount();
+        refreshCurrentScannedItemCount();
         updateInfo();
 
         if (mSelectedLocationSource.equals(LocationTable.Source.PRELOAD)) {
             boolean refreshLocations = false;
 
-            GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
-            GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindString(2, ItemTable.Status.MISPLACED);
-            GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindString(3, ItemTable.Source.SCANNER);
-            long scannedItemCount = GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.simpleQueryForLong();
-
-            if (mCurrentMisplacedScannedItemCount > 0 && scannedItemCount > 0) {
+            if (mCurrentMisplacedScannedItemCount > 0 && mCurrentScannedItemCount > 0) {
                 if (!mSelectedLocationStatus.equals(LocationTable.Status.WARNING_ERROR)) {
                     ContentValues locationStatusValues = new ContentValues(1);
                     locationStatusValues.put(PreloadInventoryDatabase.STATUS, LocationTable.Status.WARNING_ERROR);
@@ -960,7 +957,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
                     refreshLocations = true;
                 }
-            } else if (scannedItemCount > 0) {
+            } else if (mCurrentScannedItemCount > 0) {
                 if (!mSelectedLocationStatus.equals(LocationTable.Status.WARNING)) {
                     ContentValues locationStatusValues = new ContentValues(1);
                     locationStatusValues.put(PreloadInventoryDatabase.STATUS, LocationTable.Status.WARNING);
@@ -1028,12 +1025,26 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
                 mCurrentNotMisplacedScannedItemCount = (int) GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT.simpleQueryForLong();
                 break;
-            case LocationTable.Source.SCANNER:
-                GET_SCANNED_ITEM_COUNT_WITH_SCANNED_LOCATION_BARCODE_STATEMENT.bindString(1, mSelectedLocationBarcode);
-                mCurrentNotMisplacedScannedItemCount = (int) GET_SCANNED_ITEM_COUNT_WITH_SCANNED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong();
-                break;
             default:
                 mCurrentNotMisplacedScannedItemCount = 0;
+                break;
+        }
+    }
+
+    private void refreshCurrentScannedItemCount() {
+        switch (mSelectedLocationSource) {
+            case LocationTable.Source.PRELOAD:
+                GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
+                GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindString(2, ItemTable.Status.MISPLACED);
+                GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.bindString(3, ItemTable.Source.SCANNER);
+                mCurrentScannedItemCount = (int) GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT.simpleQueryForLong();
+                break;
+            case LocationTable.Source.SCANNER:
+                GET_SCANNED_ITEM_COUNT_WITH_SCANNED_LOCATION_BARCODE_STATEMENT.bindString(1, mSelectedLocationBarcode);
+                mCurrentScannedItemCount = (int) GET_SCANNED_ITEM_COUNT_WITH_SCANNED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong();
+                break;
+            default:
+                mCurrentScannedItemCount = 0;
                 break;
         }
     }
@@ -1334,9 +1345,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         } else {
             if (mSelectedLocationSource.equals(LocationTable.Source.PRELOAD)) {
                 scannedItemsTextView.setText(getString(R.string.items_scanned_format_string, mCurrentNotMisplacedScannedItemCount, mCurrentPreloadedItemCount));
-                misplacedItemsTextView.setText(String.valueOf(mCurrentMisplacedScannedItemCount));
+                misplacedItemsTextView.setText(String.valueOf(mCurrentMisplacedScannedItemCount + mCurrentScannedItemCount));
             } else {
-                scannedItemsTextView.setText(String.valueOf(mCurrentNotMisplacedScannedItemCount));
+                scannedItemsTextView.setText(String.valueOf(mCurrentScannedItemCount));
                 misplacedItemsTextView.setText("-");
             }
         }
