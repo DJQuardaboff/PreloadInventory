@@ -5,19 +5,6 @@
     <color name="colorPrimaryLight">#FF6E40</color>
     <color name="colorAccent">#536DFE</color>
 
-    <color name="selected_preloaded_location_background_color">#FF8C9EFE</color>
-    <color name="selected_preloaded_location_text_color">#AF000000</color>
-    <color name="selected_preloaded_location_inverted_text_color">#FFFFFFFF</color>
-    <color name="deselected_preloaded_location_background_color">#FFFFFFFF</color>
-    <color name="deselected_preloaded_location_text_color">#FF000000</color>
-    <color name="deselected_preloaded_location_inverted_text_color">#FF000000</color>
-    <color name="selected_scanned_location_background_color">#FF009688</color>
-    <color name="selected_scanned_location_text_color">#FFFFFFFF</color>
-    <color name="deselected_scanned_location_background_color">#FFFFFFFF</color>
-    <color name="deselected_scanned_location_text_color">#FF009688</color>
-
-    <!--color name="misplaced_scanned_preloaded_item_color">#FFE99797</color-->
-    <!--color name="not_misplaced_scanned_preloaded_item_color">#FFA6D7A8</color-->
     <color name="misplaced_scanned_preloaded_item_color">#5FF44336</color>
     <color name="not_misplaced_scanned_preloaded_item_color">#5F4CAF50</color>
     <color name="not_misplaced_preloaded_item_color">#FFFFFFFF</color>
