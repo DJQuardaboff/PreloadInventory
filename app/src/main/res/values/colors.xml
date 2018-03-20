@@ -8,5 +8,5 @@
     <color name="misplaced_scanned_preloaded_item_color">#5FF44336</color>
     <color name="not_misplaced_scanned_preloaded_item_color">#5F4CAF50</color>
     <color name="not_misplaced_preloaded_item_color">#FFFFFFFF</color>
-    <color name="scanned_item_color">#5FFFEB3B</color>
+    <color name="scanned_item_color">#5FF44336</color>
 </resources>

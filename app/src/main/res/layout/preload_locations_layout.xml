@@ -10,100 +10,112 @@
     android:orientation="vertical"
     tools:context="com.porterlee.preload.location.PreloadLocationsActivity">
 
-    <LinearLayout
-        android:id="@+id/info_layout"
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/last_scan_title"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_width="match_parent"
+        android:text="@string/last_scan_title_string"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:gravity="end"
+        android:textColor="#FFFFFF"
         android:background="@color/colorPrimary"
-        android:orientation="vertical">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/total_locations_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/last_scan"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-        <me.zhanghai.android.materialprogressbar.MaterialProgressBar
-            style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
-            android:id="@+id/progress_saving"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:max="320"
-            app:mpb_useIntrinsicPadding="false"
-            app:mpb_progressStyle="horizontal"/>
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/last_scan"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="start"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toTopOf="@+id/last_scan_title"
+        app:layout_constraintBottom_toBottomOf="@+id/last_scan_title"
+        app:layout_constraintStart_toEndOf="@+id/last_scan_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+    <TextView
+        android:id="@+id/total_locations_title"
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/total_locations_title_string"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:gravity="end"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toBottomOf="@+id/last_scan_title"
+        app:layout_constraintBottom_toTopOf="@+id/column_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/total_locations"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/last_scan_title_string"
-                android:paddingEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#FFFFFF"
-                tools:ignore="RtlSymmetry"/>
+    <TextView
+        style="@style/Base.TextAppearance.AppCompat.Medium"
+        android:id="@+id/total_locations"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="start"
+        android:textColor="#FFFFFF"
+        android:background="@color/colorPrimary"
+        app:layout_constraintTop_toTopOf="@+id/total_locations_title"
+        app:layout_constraintBottom_toBottomOf="@+id/total_locations_title"
+        app:layout_constraintStart_toEndOf="@+id/total_locations_title"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintHorizontal_weight="1"/>
 
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/last_scan"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start"
-                android:textColor="#FFFFFF"/>
 
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="@string/total_locations_title_string"
-                android:paddingEnd="8dp"
-                android:layout_weight="1"
-                android:gravity="end"
-                android:textColor="#FFFFFF"
-                tools:ignore="RtlSymmetry"/>
-
-            <TextView
-                style="@style/Base.TextAppearance.AppCompat.Medium"
-                android:id="@+id/total_locations"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="start"
-                android:textColor="#FFFFFF"/>
-
-        </LinearLayout>
-
-        <TextView
-            style="@style/Base.TextAppearance.AppCompat.Small"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/inventory_location_column_title"
-            android:textColor="#7FFFFFFF"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:paddingStart="51dp"
-            android:paddingEnd="37dp"
-            android:background="@color/colorPrimaryLight"
-            android:gravity="start"/>
-
-    </LinearLayout>
+    <TextView
+        android:id="@+id/column_title"
+        style="@style/Base.TextAppearance.AppCompat.Small"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/inventory_location_column_title"
+        android:textColor="#7FFFFFFF"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:paddingStart="51dp"
+        android:paddingEnd="37dp"
+        android:background="@color/colorPrimaryLight"
+        android:gravity="start"
+        app:layout_constraintTop_toBottomOf="@+id/total_locations_title"
+        app:layout_constraintBottom_toTopOf="@+id/location_list_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/location_list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layoutAnimation="@anim/layout_animation"
-        app:layout_constraintTop_toBottomOf="@+id/info_layout"
+        app:layout_constraintTop_toBottomOf="@+id/column_title"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
+
+
+    <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+        style="@style/Widget.MaterialProgressBar.ProgressBar.Horizontal"
+        android:id="@+id/progress_saving"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:max="320"
+        app:mpb_useIntrinsicPadding="false"
+        app:mpb_progressStyle="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <!--Button
         android:id="@+id/random_scan_button"

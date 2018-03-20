@@ -18,6 +18,7 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteStatement;
 import android.graphics.Typeface;
 import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -110,6 +111,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private SQLiteStatement GET_MISPLACED_SCANNED_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT;
     private SQLiteStatement GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT;
     //private SQLiteStatement GET_STATUS_OF_PRELOADED_LOCATION_STATEMENT;
+    private String previousPrefix = "";
+    private String previousPostfix = "";
     private SharedPreferences mSharedPreferences;
     private Vibrator mVibrator;
     private File mDatabaseFile;
@@ -206,11 +209,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             }
                         }
 
-                        printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"","\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"","\"\""));
+                        printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"", "\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"", "\"\""));
                         printStream.flush();
                     }
 
-                    printStream.printf("\"%s\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"","\"\""), itemCursor.getString(itemDateTimeIndex).replace("\"","\"\""));
+                    printStream.printf("\"%s\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), itemCursor.getString(itemDateTimeIndex).replace("\"", "\"\""));
                     printStream.flush();
 
                     itemCursor.moveToNext();
@@ -232,7 +235,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     return new Pair<>("DeleteFailed", "Could not delete existing output file");
                 }
 
-                MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { EXTERNAL_PATH.getAbsolutePath() },  null, null);
+                refreshExternalPath();
+                //MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[]{ EXTERNAL_PATH.getAbsolutePath() }, null, null);
 
                 if (!TEMP_OUTPUT_FILE.renameTo(OUTPUT_FILE) && TEMP_OUTPUT_FILE.exists() && !OUTPUT_FILE.exists()) {
                     //noinspection ResultOfMethodCallIgnored
@@ -244,15 +248,16 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     return new Pair<>("RenameFailed", String.format("Could not rename temp file to \"%s\"", OUTPUT_FILE.getName()));
                 }
 
-                MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { OUTPUT_FILE.getParent() },  null, null);
-            } catch (FileNotFoundException e){
+                refreshExternalPath();
+                //MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[]{ OUTPUT_FILE.getParent() }, null, null);
+            } catch (FileNotFoundException e) {
                 Log.w(TAG, "FileNotFoundException occurred while saving: " + e.getMessage());
                 e.printStackTrace();
 
                 itemCursor.close();
                 locationCursor.close();
                 return new Pair<>("FileNotFound", "FileNotFoundException occurred while saving");
-            } catch (IOException e){
+            } catch (IOException e) {
                 Log.w(TAG, "IOException occurred while saving: " + e.getMessage());
                 e.printStackTrace();
 
@@ -333,7 +338,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING))
                     return new Object[] { "saving", barcode };
 
-                return new Object[] { isPreloaded ? "preloaded_location" : "non_preloaded_location", barcode, mDatabase.insert(LocationTable.NAME, null, newLocationValues), true };
+                return new Object[] { isPreloaded ? "preloaded_location" : "non_preloaded_location", barcode, isPreloaded ? mDatabase.insert(LocationTable.NAME, null, newLocationValues) : -1, true };
             } else if (isItem(barcode) || isContainer(barcode)) {
                 if (mSelectedLocationBarcode.isEmpty() || (mSelectedLocationId < 0 && mSelectedMaxLocationId < 0 && mSelectedPreloadedLocationId < 0))
                     return new Object[] { "no_location" };
@@ -365,19 +370,29 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     isMisplaced = true;
 
                     Cursor cursor = mDatabase.rawQuery("SELECT " + ItemTable.Keys.CASE_NUMBER + " AS case_number, " + ItemTable.Keys.ITEM_NUMBER + " AS item_number, " + ItemTable.Keys.PACKAGING + " AS packaging, " + ItemTable.Keys.DESCRIPTION + " AS description, " + ItemTable.Keys.ITEM_TYPE + " AS item_type FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.SOURCE + " = ? AND " + ItemTable.Keys.BARCODE + " = ?", new String[] { ItemTable.Source.PRELOAD, barcode });
+                    cursor.moveToFirst();
 
-                    int caseNumberIndex = cursor.getColumnIndex("case_number");
-                    int itemNumberIndex = cursor.getColumnIndex("item_number");
-                    int packagingIndex = cursor.getColumnIndex("packaging");
-                    int descriptionIndex = cursor.getColumnIndex("description");
-                    int itemTypeIndex = cursor.getColumnIndex("item_type");
+                    if (cursor.getCount() > 0) {
+                        int caseNumberIndex = cursor.getColumnIndex("case_number");
+                        int itemNumberIndex = cursor.getColumnIndex("item_number");
+                        int packagingIndex = cursor.getColumnIndex("packaging");
+                        int descriptionIndex = cursor.getColumnIndex("description");
+                        int itemTypeIndex = cursor.getColumnIndex("item_type");
 
-                    newItemValues.put(PreloadInventoryDatabase.CASE_NUMBER, cursor.getString(caseNumberIndex));
-                    newItemValues.put(PreloadInventoryDatabase.ITEM_NUMBER, cursor.getString(itemNumberIndex));
-                    newItemValues.put(PreloadInventoryDatabase.PACKAGING, cursor.getString(packagingIndex));
-                    newItemValues.put(PreloadInventoryDatabase.DESCRIPTION, cursor.getString(descriptionIndex));
-                    newItemValues.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.MISPLACED);
-                    newItemValues.put(PreloadInventoryDatabase.ITEM_TYPE, cursor.getString(itemTypeIndex));
+                        newItemValues.put(PreloadInventoryDatabase.CASE_NUMBER, cursor.getString(caseNumberIndex));
+                        newItemValues.put(PreloadInventoryDatabase.ITEM_NUMBER, cursor.getString(itemNumberIndex));
+                        newItemValues.put(PreloadInventoryDatabase.PACKAGING, cursor.getString(packagingIndex));
+                        newItemValues.put(PreloadInventoryDatabase.DESCRIPTION, cursor.getString(descriptionIndex));
+                        newItemValues.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.MISPLACED);
+                        newItemValues.put(PreloadInventoryDatabase.ITEM_TYPE, cursor.getString(itemTypeIndex));
+                    } else {
+                        newItemValues.put(PreloadInventoryDatabase.CASE_NUMBER, "");
+                        newItemValues.put(PreloadInventoryDatabase.ITEM_NUMBER, "");
+                        newItemValues.put(PreloadInventoryDatabase.PACKAGING, "");
+                        newItemValues.put(PreloadInventoryDatabase.DESCRIPTION, "");
+                        newItemValues.put(PreloadInventoryDatabase.STATUS, ItemTable.Status.SCANNED);
+                        newItemValues.put(PreloadInventoryDatabase.ITEM_TYPE, "");
+                    }
 
                     cursor.close();
                 } else {
@@ -453,7 +468,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
                 return new Object[] { isPreloaded ? isMisplaced ? "misplaced_item" : "preloaded_item" : "non_preloaded_item", barcode, rowId, true };
             } else {
-                return new Object[] { "not_recognized" };
+                return new Object[] { "not_recognized", barcode };
             }
         }
     }, null, new WeakAsyncTask.OnPostExecuteListener<Object[]>() {
@@ -473,11 +488,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     Log.i(TAG, "Barcode scanned before location");
                     Toast.makeText(PreloadInventoryActivity.this, "A location must be scanned first", Toast.LENGTH_SHORT).show();
                     return;
-                case "not_recognized":
-                    vibrate();
-                    Log.i(TAG, "Unrecognised barcode scanned");
-                    Toast.makeText(PreloadInventoryActivity.this, "Barcode not recognised", Toast.LENGTH_SHORT).show();
-                    return;
             }
 
             if (results.length < 2)
@@ -489,7 +499,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 case "duplicate":
                     asyncScrollToItem(barcode);
                     vibrate();
-                    Log.i(TAG, "Duplicate barcode scanned");
+                    Log.i(TAG, String.format("Duplicate barcode scanned: \"%s\"", barcode));
                     Toast.makeText(PreloadInventoryActivity.this, "Duplicate barcode scanned", Toast.LENGTH_SHORT).show();
                     return;
                 case "saving":
@@ -497,6 +507,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     vibrate();
                     Log.i(TAG, "Cannot scan barcode while saving");
                     Toast.makeText(PreloadInventoryActivity.this, "Cannot scan barcode while saving", Toast.LENGTH_SHORT).show();
+                    return;
+                case "not_recognized":
+                    vibrate();
+                    Log.i(TAG, String.format("Unrecognised barcode scanned: \"%s\"", barcode));
+                    Toast.makeText(PreloadInventoryActivity.this, "Barcode not recognised", Toast.LENGTH_SHORT).show();
                     return;
             }
 
@@ -521,7 +536,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     }
                     break;
                 case "non_preloaded_location":
-                    if (rowId < 0) {
+                    /*if (rowId < 0) {
                         vibrate();
                         Log.w(TAG, String.format("Error adding location \"%s\" to the list", barcode));
                         throw new SQLiteException(String.format("Error adding location \"%s\" to the list", barcode));
@@ -531,7 +546,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             asyncRefreshLocationsScrollToLocation(barcode);
                         else
                             asyncScrollToLocation(barcode);
-                    }
+                    }*/
+
+                    vibrate();
+                    Toast.makeText(PreloadInventoryActivity.this, "Non-preloaded item scanned", Toast.LENGTH_SHORT).show();
                     break;
                 case "preloaded_item":
                     if (rowId < 0) {
@@ -588,6 +606,193 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         @Override
         public void onCancelled(Object[] result) {
             Log.w(TAG + ".ScanBarcodeTask", "This task should not be cancelled");
+        }
+    });
+
+    private final WeakAsyncTask.AsyncTaskListeners<Void, Void, String> readFileTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(new WeakAsyncTask.OnPreExecuteListener() {
+        @Override
+        public void onPreExecute() {
+            mProgressBar.setIndeterminate(true);
+        }
+    }, new WeakAsyncTask.OnDoInBackgroundListener<Void, Void, String>() {
+        @Override
+        public String onDoInBackground(Void... voids) {
+            LineNumberReader lineReader = null;
+            try {
+                final long startRead = System.currentTimeMillis();
+
+                int tries = 0;
+
+                while (lineReader == null && startRead + 10000 > System.currentTimeMillis() ) {
+                    tries++;
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException ignored) {
+
+                    }
+                    try {
+                        lineReader = new LineNumberReader(new FileReader(INPUT_FILE));
+                    } catch (FileNotFoundException ignored) {
+
+                    }
+                }
+                Log.e(TAG, String.valueOf(tries));
+
+                String line;
+                String[] elements;
+                long currentLocationId = -1;
+
+                mDatabase.beginTransaction();
+
+                while ((line = lineReader.readLine()) != null) {
+                    elements = line.split("((?<!\\|)(\\|)(?!\\|))");
+
+                    for (int i = 0; i < elements.length; i++) {
+                        elements[i] = elements[i].replaceAll("(^\")|(\"$)", "").replace("\"\"", "\"").replace("||", "|");
+                    }
+
+                    if (elements.length > 0) {
+                        GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, elements[1]);
+                        GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
+                        if (isLocation(elements[1]) ? !(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) : !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
+                            if (elements.length == 3 && elements[0].equals("L")) {
+                                //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                                currentLocationId = addPreloadLocation(elements[1], elements[2]);
+                                if (currentLocationId == -1)
+                                    throw new SQLException(String.format(Locale.US, "Error adding location \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                            } else if (elements.length == 4 && elements[0].equals("C")) {
+                                //System.out.println("Case-Container: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\', case-number = \'" + elements[3] + "\'");
+                                if (addPreloadItem(currentLocationId, elements[1], elements[3], "", "", elements[2], ItemTable.ItemType.CASE_CONTAINER) < 0)
+                                    throw new SQLiteException(String.format(Locale.US, "Error adding case-container \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                            } else if (elements.length == 3 && elements[0].equals("B")) {
+                                //System.out.println("Bulk-Container: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                                if (addPreloadItem(currentLocationId, elements[1], "", "", "", elements[2], ItemTable.ItemType.BULK_CONTAINER) < 0)
+                                    throw new SQLiteException(String.format(Locale.US, "Error adding bulk-container \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                            } else if (elements.length == 6 && elements[0].equals("I")) {
+                                //System.out.println("Item: barcode = \'" + elements[1] + "\', case-number = \'" + elements[2] + "\', item-number = \'" + elements[3] + "\', package = \'" + elements[4] + "\', description = \'" + elements[5]);
+                                if (addPreloadItem(currentLocationId, elements[1], elements[2], elements[3], elements[4], elements[5], ItemTable.ItemType.ITEM) < 0)
+                                    throw new SQLiteException(String.format(Locale.US, "Error adding item \"%1s\" from line %2d", elements[1], lineReader.getLineNumber()));
+                            } else {
+                                if (elements.length < 2)
+                                    throw new ParseException("Expected at least 2 elements in line", lineReader.getLineNumber());
+                                else if (isItem(elements[1]) || isContainer(elements[1]) || isLocation(elements[1]))
+                                    throw new ParseException("Incorrect format or number of elements", lineReader.getLineNumber());
+                                else
+                                    throw new ParseException(String.format("Barcode \"%s\" not recognised", elements[1]), lineReader.getLineNumber());
+                            }
+                        }
+                    } else if (lineReader.getLineNumber() < 2)
+                        throw new ParseException("Blank file", lineReader.getLineNumber());
+
+                /*
+                GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, elements[1]);
+                GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
+                if (!(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) && !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
+                    if (elements.length > 0) {
+                        if (elements.length == 3 && elements[0].equals("L") && isLocation(elements[1])) {
+                            //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                            currentLocationId = addPreloadLocation(elements[1], elements[2]);
+                            currentLocationBarcode = elements[1];
+                            if (currentLocationId == -1) {
+                                lineReader.close();
+                                throw new SQLException(String.format(Locale.US, "Error adding location \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                            }
+                        } else if (elements.length == 3 && isContainer(elements[1])) {
+                            //System.out.println("Bulk-Container: location = \'" + elements[0] + "\', barcode = \'" + elements[1] + "\', description\'" + elements[2] + "\'");
+                            if (elements[0].equals(currentLocationBarcode)) {
+                                if (addPreloadItem(currentLocationId, elements[1], "", "", "", elements[2], ItemTable.ItemType.BULK_CONTAINER) < 0) {
+                                    lineReader.close();
+                                    throw new SQLiteException(String.format(Locale.US, "Error adding bulk-container \"%s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                                }
+                            } else {
+                                lineReader.close();
+                                throw new ParseException("Location does not match previously defined location", lineReader.getLineNumber());
+                            }
+                        } else if (elements.length == 4 && isContainer(elements[1])) {
+                            //System.out.println("Case-Container: location = \'" + elements[0] + "\', barcode = \'" + elements[1] + "\', description\'" + elements[2] + "\', case-number = \'" + elements[3] + "\'");
+                            if (elements[0].equals(currentLocationBarcode)) {
+                                if (addPreloadItem(currentLocationId, elements[1], elements[3], "", "", elements[2], ItemTable.ItemType.CASE_CONTAINER) < 0) {
+                                    lineReader.close();
+                                    throw new SQLiteException(String.format(Locale.US, "Error adding case-container \"%s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                                }
+                            } else {
+                                lineReader.close();
+                                throw new ParseException("Location does not match previously defined location", lineReader.getLineNumber());
+                            }
+                        } else if (elements.length == 6 && isItem(elements[1])) {
+                            //System.out.println("Item: location = \'" + elements[0] + "\', barcode = \'" + elements[1] + "\', case-number\'" + elements[2] + "\', item-number = \'" + elements[3] + "\', package = \'" + elements[4] + "\', description = \'" + elements[5]);
+                            if (elements[0].equals(currentLocationBarcode)) {
+                                if (addPreloadItem(currentLocationId, elements[1], elements[2], elements[3], elements[4], elements[5], ItemTable.ItemType.ITEM) < 0) {
+                                    lineReader.close();
+                                    throw new SQLiteException(String.format(Locale.US, "Error adding item \"%s\" from line %2d", elements[1], lineReader.getLineNumber()));
+                                }
+                            } else {
+                                lineReader.close();
+                                throw new ParseException("Location does not match previously defined location", lineReader.getLineNumber());
+                            }
+                        } else {
+                            lineReader.close();
+                            if (elements.length < 2)
+                                throw new ParseException("Expected at least 2 elements in line", lineReader.getLineNumber());
+                            else if (isItem(elements[1]) || isContainer(elements[1]) || isLocation(elements[1]))
+                                throw new ParseException("Incorrect format or number of elements", lineReader.getLineNumber());
+                            else
+                                throw new ParseException(String.format("Barcode \"%s\" not recognised", elements[1]), lineReader.getLineNumber());
+                        }
+                    } else if (lineReader.getLineNumber() < 2) {
+                        lineReader.close();
+                        throw new ParseException("Blank file", lineReader.getLineNumber());
+                    }
+                }*/
+                }
+
+                mDatabase.setTransactionSuccessful();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                return ParseException.class.getSimpleName();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return ParseException.class.getSimpleName();
+            } catch (ParseException e) {
+                e.printStackTrace();
+                return ParseException.class.getSimpleName();
+            } finally {
+                if (lineReader != null) {
+                    try {
+                        lineReader.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if (mDatabase.inTransaction())
+                    mDatabase.endTransaction();
+            }
+            return null;
+        }
+    }, new WeakAsyncTask.OnProgressUpdateListener<Void>() {
+        @Override
+        public void onProgressUpdate(Void... progress) {
+
+        }
+    }, new WeakAsyncTask.OnPostExecuteListener<String>() {
+        @Override
+        public void onPostExecute(String result) {
+            mProgressBar.setIndeterminate(false);
+
+            if (result != null && result.equals(ParseException.class.getSimpleName())) {
+                startActivity(new Intent(PreloadInventoryActivity.this, PreloadLocationsActivity.class));
+                finish();
+                Toast.makeText(PreloadInventoryActivity.this, "There was an error parsing the file", Toast.LENGTH_SHORT).show();
+            }
+
+            asyncRefreshItems();
+            asyncRefreshLocations();
+        }
+    }, new WeakAsyncTask.OnCancelledListener<String>() {
+        @Override
+        public void onCancelled(String result) {
+
         }
     });
 
@@ -651,7 +856,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             Log.w(TAG, "External directory does not exist and could not be created, this may cause a problem");
 
         mDatabaseFile = new File(getFilesDir() + "/" + PreloadInventoryDatabase.DIRECTORY, PreloadInventoryDatabase.FILE_NAME);
-        //mDatabaseFile = new File(mInputFile.getParent(), "/test.db");
+        //mDatabaseFile = new File(INPUT_FILE.getParent(), "/test.db");
         if (!mDatabaseFile.getParentFile().mkdirs() && !mDatabaseFile.exists())
             Log.w(TAG, "Output directory does not exist and could not be created, this may cause a problem");
 
@@ -729,24 +934,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         //GET_STATUS_OF_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT " + LocationTable.Keys.STATUS + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.PRELOAD + "\" AND " + LocationTable.Keys.ID + " = ?");
         GET_SCANNED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM ( SELECT MIN(" + ItemTable.Keys.SOURCE + ") AS min_source FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.STATUS + " != ? GROUP BY " + ItemTable.Keys.BARCODE + " ) WHERE min_source = ?");
 
-        if (!mSharedPreferences.getBoolean("ongoing_inventory", false)) {
-            mDatabase.delete(ItemTable.NAME, null, null);
-            mDatabase.delete(LocationTable.NAME, null, null);
-
-            try {
-                readFileIntoPreloadDatabase();
-            } catch (ParseException e) {
-                e.printStackTrace();
-                startActivity(new Intent(this, PreloadLocationsActivity.class));
-                finish();
-                Toast.makeText(this, "There was an error parsing the file", Toast.LENGTH_SHORT).show();
-            }
-
-            mSharedPreferences.edit().putBoolean("ongoing_inventory", true).apply();
-            if (!INPUT_FILE.renameTo(new File(INPUT_FILE.getParent(), "data.old")) && INPUT_FILE.exists())
-                throw new RuntimeException("Could not move input file to app data directory");
-        }
-
         mProgressBar = findViewById(R.id.progress_saving);
 
         /*this.<Button>findViewById(R.id.random_scan_button).setOnClickListener(new View.OnClickListener() {
@@ -815,6 +1002,18 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
         mLocationRecyclerView.setSelectedItem(-1);
         mItemRecyclerView.setSelectedItem(-1);
+
+        if (!mSharedPreferences.getBoolean("ongoing_inventory", false)) {
+            mDatabase.delete(ItemTable.NAME, null, null);
+            mDatabase.delete(LocationTable.NAME, null, null);
+
+            readFileIntoPreloadDatabase();
+
+            mSharedPreferences.edit().putBoolean("ongoing_inventory", true).apply();
+            if (!INPUT_FILE.renameTo(new File(INPUT_FILE.getParent(), "data.old")) && INPUT_FILE.exists())
+                throw new RuntimeException("Could not move input file to app data directory");
+        }
+
         asyncRefreshItems();
         asyncRefreshLocations();
     }
@@ -956,6 +1155,17 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         }.execute();
     }
 
+    private void refreshExternalPath() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            Uri contentUri = Uri.fromFile(EXTERNAL_PATH);
+            mediaScanIntent.setData(contentUri);
+            sendBroadcast(mediaScanIntent);
+        } else {
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(EXTERNAL_PATH)));
+        }
+    }
+
     private void refreshItemInfo() {
         refreshCurrentPreloadedItemCount();
         refreshCurrentNotMisplacedScannedItemCount();
@@ -1009,7 +1219,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             }
 
             ContentValues locationProgressValues = new ContentValues(1);
-            locationProgressValues.put(PreloadInventoryDatabase.PROGRESS, ((float) mCurrentNotMisplacedScannedItemCount) / mCurrentPreloadedItemCount);
+            locationProgressValues.put(PreloadInventoryDatabase.PROGRESS, mCurrentPreloadedItemCount > 0 ? ((float) mCurrentNotMisplacedScannedItemCount) / mCurrentPreloadedItemCount : 0);
 
             if (mSelectedLocationProgress != locationProgressValues.getAsFloat(PreloadInventoryDatabase.PROGRESS)) {
                 if (mDatabase.update(LocationTable.NAME, locationProgressValues, LocationTable.Keys.ID + " = ? AND " + LocationTable.Keys.SOURCE + " = ?", new String[]{String.valueOf(mSelectedPreloadedLocationId), LocationTable.Source.PRELOAD}) < 1)
@@ -1092,6 +1302,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         if (mScanner != null) {
             try {
                 mScanner.aDecodeSetTriggerOn(0);
+                previousPrefix = mScanner.aDecodeGetPrefix();
+                previousPostfix = mScanner.aDecodeGetPostfix();
+                mScanner.aDecodeSetPrefix("");
+                mScanner.aDecodeSetPostfix("");
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -1107,6 +1321,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         if (mScanner != null) {
             try {
                 mScanner.aDecodeSetTriggerOn(0);
+                mScanner.aDecodeSetPrefix(previousPrefix);
+                mScanner.aDecodeSetPostfix(previousPostfix);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -1116,8 +1332,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     @Override
     protected void onDestroy() {
         mDatabase.close();
-        mLocationRecyclerAdapter.getCursor().close();
-        mItemRecyclerAdapter.getCursor().close();
+        if (mLocationRecyclerAdapter != null && mLocationRecyclerAdapter.getCursor() != null)
+            mLocationRecyclerAdapter.getCursor().close();
+        if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
+            mItemRecyclerAdapter.getCursor().close();
         super.onDestroy();
     }
 
@@ -1366,7 +1584,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     }
 
     private void updateInfo() {
-        TextView scannedItemsTextView = findViewById(R.id.items_scanned);
+        TextView scannedItemsTextView = findViewById(R.id.items_scanned_text_view);
         TextView misplacedItemsTextView = findViewById(R.id.misplaced_items_text_view);
         if (mLocationRecyclerView.getSelectedItem() < 0) {
             scannedItemsTextView.setText("-");
@@ -1382,66 +1600,47 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         }
     }
 
-    public void readFileIntoPreloadDatabase() throws ParseException {
+    public void readFileIntoPreloadDatabase() {
+        //new WeakAsyncTask<>(readFileTaskListeners).execute();
+        LineNumberReader lineReader = null;
         try {
-            LineNumberReader lineReader = new LineNumberReader(new FileReader(INPUT_FILE));
+
+            lineReader = new LineNumberReader(new FileReader(INPUT_FILE));
             String line;
             String[] elements;
             long currentLocationId = -1;
-            String currentLocationBarcode = "";
 
             mDatabase.beginTransaction();
 
             while ((line = lineReader.readLine()) != null) {
-                elements = line.split(Pattern.quote("|"));
+                elements = line.split("((?<!\\|)(\\|)(?!\\|))");
 
-                GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, elements[1]);
-                GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
-                if (!(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) && !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
-                    if (elements.length > 0) {
-                        if (elements.length == 3 && elements[0].equals("LOCATION") && isLocation(elements[1])) {
+                for (int i = 0; i < elements.length; i++) {
+                    elements[i] = elements[i].replaceAll("(^\")|(\"$)", "").replace("\"\"", "\"").replace("||", "|");
+                }
+
+                if (elements.length > 0) {
+                    GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, elements[1]);
+                    GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
+                    if (isLocation(elements[1]) ? !(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) : !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
+                        if (elements.length == 3 && elements[0].equals("L")) {
                             //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
                             currentLocationId = addPreloadLocation(elements[1], elements[2]);
-                            currentLocationBarcode = elements[1];
-                            if (currentLocationId == -1) {
-                                lineReader.close();
+                            if (currentLocationId == -1)
                                 throw new SQLException(String.format(Locale.US, "Error adding location \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
-                            }
-                        } else if (elements.length == 3 && isContainer(elements[1])) {
-                            //System.out.println("Bulk-Container: location = \'" + elements[0] + "\', barcode = \'" + elements[1] + "\', description\'" + elements[2] + "\'");
-                            if (elements[0].equals(currentLocationBarcode)) {
-                                if (addPreloadItem(currentLocationId, elements[1], "", "", "", elements[2], ItemTable.ItemType.BULK_CONTAINER) < 0) {
-                                    lineReader.close();
-                                    throw new SQLiteException(String.format(Locale.US, "Error adding bulk-container \"%s\" from line%2d", elements[1], lineReader.getLineNumber()));
-                                }
-                            } else {
-                                lineReader.close();
-                                throw new ParseException("Location does not match previously defined location", lineReader.getLineNumber());
-                            }
-                        } else if (elements.length == 4 && isContainer(elements[1])) {
-                            //System.out.println("Case-Container: location = \'" + elements[0] + "\', barcode = \'" + elements[1] + "\', description\'" + elements[2] + "\', case-number = \'" + elements[3] + "\'");
-                            if (elements[0].equals(currentLocationBarcode)) {
-                                if (addPreloadItem(currentLocationId, elements[1], elements[3], "", "", elements[2], ItemTable.ItemType.CASE_CONTAINER) < 0) {
-                                    lineReader.close();
-                                    throw new SQLiteException(String.format(Locale.US, "Error adding case-container \"%s\" from line%2d", elements[1], lineReader.getLineNumber()));
-                                }
-                            } else {
-                                lineReader.close();
-                                throw new ParseException("Location does not match previously defined location", lineReader.getLineNumber());
-                            }
-                        } else if (elements.length == 6 && isItem(elements[1])) {
-                            //System.out.println("Item: location = \'" + elements[0] + "\', barcode = \'" + elements[1] + "\', case-number\'" + elements[2] + "\', item-number = \'" + elements[3] + "\', package = \'" + elements[4] + "\', description = \'" + elements[5]);
-                            if (elements[0].equals(currentLocationBarcode)) {
-                                if (addPreloadItem(currentLocationId, elements[1], elements[2], elements[3], elements[4], elements[5], ItemTable.ItemType.ITEM) < 0) {
-                                    lineReader.close();
-                                    throw new SQLiteException(String.format(Locale.US, "Error adding item \"%s\" from line %2d", elements[1], lineReader.getLineNumber()));
-                                }
-                            } else {
-                                lineReader.close();
-                                throw new ParseException("Location does not match previously defined location", lineReader.getLineNumber());
-                            }
+                        } else if (elements.length == 4 && elements[0].equals("C")) {
+                            //System.out.println("Case-Container: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\', case-number = \'" + elements[3] + "\'");
+                            if (addPreloadItem(currentLocationId, elements[1], elements[3], "", "", elements[2], ItemTable.ItemType.CASE_CONTAINER) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding case-container \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                        } else if (elements.length == 3 && elements[0].equals("B")) {
+                            //System.out.println("Bulk-Container: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
+                            if (addPreloadItem(currentLocationId, elements[1], "", "", "", elements[2], ItemTable.ItemType.BULK_CONTAINER) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding bulk-container \"%1s\" from line%2d", elements[1], lineReader.getLineNumber()));
+                        } else if (elements.length == 6 && elements[0].equals("I")) {
+                            //System.out.println("Item: barcode = \'" + elements[1] + "\', case-number = \'" + elements[2] + "\', item-number = \'" + elements[3] + "\', package = \'" + elements[4] + "\', description = \'" + elements[5]);
+                            if (addPreloadItem(currentLocationId, elements[1], elements[2], elements[3], elements[4], elements[5], ItemTable.ItemType.ITEM) < 0)
+                                throw new SQLiteException(String.format(Locale.US, "Error adding item \"%1s\" from line %2d", elements[1], lineReader.getLineNumber()));
                         } else {
-                            lineReader.close();
                             if (elements.length < 2)
                                 throw new ParseException("Expected at least 2 elements in line", lineReader.getLineNumber());
                             else if (isItem(elements[1]) || isContainer(elements[1]) || isLocation(elements[1]))
@@ -1449,21 +1648,30 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             else
                                 throw new ParseException(String.format("Barcode \"%s\" not recognised", elements[1]), lineReader.getLineNumber());
                         }
-                    } else if (lineReader.getLineNumber() < 2) {
-                        lineReader.close();
-                        throw new ParseException("Blank file", lineReader.getLineNumber());
                     }
-                }
+                } else if (lineReader.getLineNumber() < 2)
+                    throw new ParseException("Blank file", lineReader.getLineNumber());
             }
 
             mDatabase.setTransactionSuccessful();
-
-            lineReader.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+            startActivity(new Intent(PreloadInventoryActivity.this, PreloadLocationsActivity.class));
+            finish();
+            Toast.makeText(PreloadInventoryActivity.this, "There was an error parsing the file", Toast.LENGTH_SHORT).show();
         } finally {
+            if (lineReader != null) {
+                try {
+                    lineReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
             if (mDatabase.inTransaction())
                 mDatabase.endTransaction();
         }
@@ -1556,7 +1764,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private class PreloadedLocationViewHolder extends LocationViewHolder {
         private TextView locationTextView;
         private MaterialProgressBar locationProgressBar;
-        private ImageView locationWarningSymbol;
+        //private ImageView locationWarningSymbol;
         private ImageView locationErrorSymbol;
         private long id = -1;
         private long maxId = -1;
@@ -1569,18 +1777,18 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         boolean isSelected = false;
 
         PreloadedLocationViewHolder(final ViewGroup parent) {
-            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.preloaded_location_layout, parent, false));
+            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.preload_inventory_location_layout, parent, false));
             locationTextView = itemView.findViewById(R.id.location_text_view);
             locationProgressBar = itemView.findViewById(R.id.location_progress_bar);
-            locationWarningSymbol = itemView.findViewById(R.id.location_warning_symbol);
+            //locationWarningSymbol = itemView.findViewById(R.id.location_warning_symbol);
             locationErrorSymbol = itemView.findViewById(R.id.location_error_symbol);
-            //itemView.setClickable(true);
-            /*itemView.setOnClickListener(new View.OnClickListener() {
+            itemView.setClickable(true);
+            itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     scanBarcode(barcode);
                 }
-            });*/
+            });
         }
 
         @Override
@@ -1616,19 +1824,20 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             switch (status) {
                 case LocationTable.Status.WARNING_ERROR:
-                    locationWarningSymbol.setVisibility(View.VISIBLE);
+                    //locationWarningSymbol.setVisibility(View.VISIBLE);
                     locationErrorSymbol.setVisibility(View.VISIBLE);
                     break;
                 case LocationTable.Status.WARNING:
-                    locationWarningSymbol.setVisibility(View.VISIBLE);
-                    locationErrorSymbol.setVisibility(View.GONE);
+                    //locationWarningSymbol.setVisibility(View.VISIBLE);
+                    //locationErrorSymbol.setVisibility(View.GONE);
+                    locationErrorSymbol.setVisibility(View.VISIBLE);
                     break;
                 case LocationTable.Status.ERROR:
-                    locationWarningSymbol.setVisibility(View.GONE);
+                    //locationWarningSymbol.setVisibility(View.GONE);
                     locationErrorSymbol.setVisibility(View.VISIBLE);
                     break;
                 default:
-                    locationWarningSymbol.setVisibility(View.GONE);
+                    //locationWarningSymbol.setVisibility(View.GONE);
                     locationErrorSymbol.setVisibility(View.GONE);
                     break;
             }
@@ -1823,6 +2032,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     popup.show();
                 }
             });
+            /*itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Dialog infoDialog = ;
+                }
+            });*/
         }
 
         void bindViews(Cursor cursor) {
@@ -1925,14 +2140,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 try {
                     mScanner.aDecodeGetResult(mDecodeResult);
                     String barcode = mDecodeResult.decodeValue;
-                    if (barcode.equals(">><<")) {
+
+                    if (barcode.equals("")) {
                         Toast.makeText(PreloadInventoryActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                    } else if (barcode.startsWith(">>") && barcode.endsWith("<<")) {
-                        barcode = barcode.substring(2, barcode.length() - 2);
-                        if (barcode.equals("SCAN AGAIN")) return;
+                    } else if (!barcode.equals("SCAN AGAIN")) {
                         scanBarcode(barcode);
-                    } else if (!barcode.equals("SCAN AGAIN")){
-                        Toast.makeText(PreloadInventoryActivity.this, "Barcode prefix and suffix may not be set", Toast.LENGTH_SHORT).show();
                     }
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);

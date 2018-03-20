@@ -43,13 +43,13 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
         SharedPreferences sharedPreferences = getSharedPreferences("preload_preferences", MODE_PRIVATE);
 
         //noinspection ResultOfMethodCallIgnored
-        PreloadLocationsActivity.OUTPUT_PATH.mkdirs();
+        PreloadLocationsActivity.EXTERNAL_PATH.mkdirs();
         //noinspection ResultOfMethodCallIgnored
         PreloadInventoryActivity.EXTERNAL_PATH.mkdirs();
 
         return new Intent(context, sharedPreferences.getBoolean("ongoing_inventory", false) ? PreloadInventoryActivity.class : PreloadLocationsActivity.class);
         /*
-        File[] fileOutputs = PreloadLocationsActivity.OUTPUT_PATH.listFiles();
+        File[] fileOutputs = PreloadLocationsActivity.EXTERNAL_PATH.listFiles();
         File[] fileInputs = PreloadInventoryActivity.INPUT_PATH.listFiles();
 
         if (fileOutputs == null || fileInputs == null) {
@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             return intent;
         } else {
             intent = new Intent(context, PreloadLocationsActivity.class);
-            intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.OUTPUT_PATH).getName());
+            intent.putExtra(FILE_NAME_KEY, File.createTempFile("data", ".txt", PreloadLocationsActivity.EXTERNAL_PATH).getName());
             return intent;
         }*/
     }

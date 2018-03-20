@@ -8,13 +8,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
-import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -69,8 +68,10 @@ import static com.porterlee.preload.MainActivity.MAX_ITEM_HISTORY_INCREASE;
 
 
 public class PreloadLocationsActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    public static final File OUTPUT_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
+    public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
+    private String previousPrefix = "";
+    private String previousPostfix = "";
     private int maxProgress;
     private FileObserver mFileObserver;
     private SharedPreferences sharedPreferences;
@@ -91,7 +92,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     private RecyclerView locationRecyclerView;
     private RecyclerView.Adapter locationRecyclerAdapter;
     private SQLiteDatabase db;
-    private IScannerService iScanner = null;
+    private IScannerService mScanner = null;
     private DecodeResult mDecodeResult = new DecodeResult();
 
     private BroadcastReceiver mScanKeyEventReceiver = new BroadcastReceiver() {
@@ -118,12 +119,12 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     };
 
     private void onScanKeyEvent(int action) {
-        if (iScanner != null) {
+        if (mScanner != null) {
             try {
                 if (action == KeyEvent.ACTION_DOWN) {
-                    iScanner.aDecodeSetTriggerOn(1);
+                    mScanner.aDecodeSetTriggerOn(1);
                 } else if (action == KeyEvent.ACTION_UP) {
-                    iScanner.aDecodeSetTriggerOn(0);
+                    mScanner.aDecodeSetTriggerOn(0);
                 }
             } catch (RemoteException e) {
                 e.printStackTrace();
@@ -149,10 +150,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         archiveDirectory = new File(getFilesDir() + "/" + PreloadLocationsDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
         archiveDirectory.mkdirs();
-        outputFile = new File(OUTPUT_PATH.getAbsolutePath(), "data.txt");
+        outputFile = new File(EXTERNAL_PATH.getAbsolutePath(), "data.txt");
         //noinspection ResultOfMethodCallIgnored
         outputFile.getParentFile().mkdirs();
-        databaseFile = new File(getFilesDir() + "/" + PreloadLocationsDatabase.DIRECTORY + "/" + PreloadLocationsDatabase.FILE_NAME);
+        databaseFile = new File(getFilesDir() + "/" + PreloadLocationsDatabase.DIRECTORY, PreloadLocationsDatabase.FILE_NAME);
+        //databaseFile = new File(EXTERNAL_PATH, PreloadLocationsDatabase.FILE_NAME);
         //noinspection ResultOfMethodCallIgnored
         databaseFile.getParentFile().mkdirs();
 
@@ -324,6 +326,18 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
         registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
         loadCurrentScannerOptions();
+
+        if (mScanner != null) {
+            try {
+                mScanner.aDecodeSetTriggerOn(0);
+                previousPrefix = mScanner.aDecodeGetPrefix();
+                previousPostfix = mScanner.aDecodeGetPostfix();
+                mScanner.aDecodeSetPrefix("");
+                mScanner.aDecodeSetPostfix("");
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -335,9 +349,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         unregisterReceiver(resultReciever);
         unregisterReceiver(mScanKeyEventReceiver);
 
-        if (iScanner != null) {
+        if (mScanner != null) {
             try {
-                iScanner.aDecodeSetTriggerOn(0);
+                mScanner.aDecodeSetTriggerOn(0);
+                mScanner.aDecodeSetPrefix(previousPrefix);
+                mScanner.aDecodeSetPostfix(previousPostfix);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -350,6 +366,16 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         if (saveTask != null) {
             saveTask.cancel(false);
             saveTask = null;
+        }
+
+        if (mScanner != null) {
+            try {
+                mScanner.aDecodeSetTriggerOn(0);
+                mScanner.aDecodeSetPrefix(previousPrefix);
+                mScanner.aDecodeSetPostfix(previousPostfix);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -425,7 +451,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
                             changedSinceLastArchive = true;
 
-                            db.delete(LocationTable.NAME, "1", null);
+                            db.delete(LocationTable.NAME, null, null);
 
                             locationCount = 0;
                             lastLocationBarcode = "-";
@@ -443,9 +469,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             case R.id.action_continuous:
                 try {
                     if (!item.isChecked()){
-                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                        mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
                     } else {
-                        iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
+                        mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_ONESHOT);
                     }
                     item.setChecked(!item.isChecked());
                 } catch (RemoteException e) {
@@ -468,16 +494,16 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     }
 
     private void initScanner() throws RemoteException {
-        iScanner = IScannerService.Stub.asInterface(ServiceManager.getService("ScannerService"));
+        mScanner = IScannerService.Stub.asInterface(ServiceManager.getService("ScannerService"));
 
-        if (iScanner != null) {
+        if (mScanner != null) {
 
-            iScanner.aDecodeAPIInit();
+            mScanner.aDecodeAPIInit();
             //try {
                 //Thread.sleep(500);
             //} catch (InterruptedException e) { }
-            iScanner.aDecodeSetDecodeEnable(1);
-            iScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
+            mScanner.aDecodeSetDecodeEnable(1);
+            mScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
         }
     }
 
@@ -485,11 +511,11 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         if (mOptionsMenu != null) {
             MenuItem item = mOptionsMenu.findItem(R.id.action_continuous);
             try {
-                if (iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
-                    iScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                if (mScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
+                    mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
                     item.setChecked(true);
                 } else
-                    item.setChecked(iScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
+                    item.setChecked(mScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
             } catch (NullPointerException e) {
                 e.printStackTrace();
                 item.setVisible(false);
@@ -786,8 +812,8 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
             try {
                 //noinspection ResultOfMethodCallIgnored
-                OUTPUT_PATH.mkdirs();
-                final File TEMP_OUTPUT_FILE = File.createTempFile("data", ".txt", OUTPUT_PATH);
+                EXTERNAL_PATH.mkdirs();
+                final File TEMP_OUTPUT_FILE = File.createTempFile("data", ".txt", EXTERNAL_PATH);
                 //Log.v(TAG, "Temp output file: " + TEMP_OUTPUT_FILE.getAbsolutePath());
                 int totalLocationCount = locationCursor.getCount() + 1;
                 PrintStream printStream = new PrintStream(TEMP_OUTPUT_FILE);
@@ -823,20 +849,22 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 if (outputFile.exists() && !outputFile.delete()) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
-                    Log.e(TAG, "Could not delete existing output file");
+                    Log.w(TAG, "Could not delete existing output file");
                     return "Could not delete existing output file";
                 }
 
-                MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{ outputFile.getParent() }, null, null);
+                refreshExternalPath();
+                //MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{ outputFile.getParent() }, null, null);
 
                 if (!TEMP_OUTPUT_FILE.renameTo(outputFile)) {
                     //noinspection ResultOfMethodCallIgnored
                     TEMP_OUTPUT_FILE.delete();
-                    Log.e(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
+                    Log.w(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
                     return "Could not rename temp file to \"" + outputFile.getName() + "\"";
                 }
 
-                MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{ outputFile.getParent() }, null, null);
+                refreshExternalPath();
+                //MediaScannerConnection.scanFile(PreloadLocationsActivity.this, new String[]{ outputFile.getParent() }, null, null);
             } catch (FileNotFoundException e){//IOException e) {
                 Log.e(TAG, "FileNotFoundException occurred while saving: " + e.getMessage());
                 e.printStackTrace();
@@ -893,6 +921,17 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         }
     }
 
+    private void refreshExternalPath() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            Uri contentUri = Uri.fromFile(EXTERNAL_PATH);
+            mediaScanIntent.setData(contentUri);
+            sendBroadcast(mediaScanIntent);
+        } else {
+            sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(EXTERNAL_PATH)));
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (permissions.length != 0 && grantResults.length != 0) {
@@ -919,20 +958,15 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     private class ScanResultReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (iScanner != null) {
+            if (mScanner != null) {
                 try {
-                    iScanner.aDecodeGetResult(mDecodeResult);
+                    mScanner.aDecodeGetResult(mDecodeResult);
                     String barcode = mDecodeResult.decodeValue;
-                    if (barcode.equals(">><<")) {
+
+                    if (barcode.equals("")) {
                         Toast.makeText(PreloadLocationsActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                    } else if ((barcode.startsWith(">>")) && (barcode.endsWith("<<"))) {
-                        barcode = barcode.substring(2, barcode.length() - 2);
-                        if (barcode.equals("SCAN AGAIN")) return;
+                    } else if (!barcode.equals("SCAN AGAIN")) {
                         scanBarcode(barcode);
-                    } else if (!barcode.equals("SCAN AGAIN")){
-                        Toast.makeText(PreloadLocationsActivity.this, "Malformed barcode: " + barcode, Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(PreloadLocationsActivity.this, "Barcode prefix and suffix might not be set", Toast.LENGTH_SHORT).show();
                     }
                     //System.out.println("symName: " + mDecodeResult.symName);
                     //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
