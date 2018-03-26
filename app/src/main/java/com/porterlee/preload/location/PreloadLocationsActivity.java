@@ -137,6 +137,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         super.onCreate(savedInstanceState);
         setContentView(R.layout.preload_locations_layout);
 
+        if (getSupportActionBar() != null)
+            getSupportActionBar().setTitle(String.format("%1s v%2s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
+
         sharedPreferences = getPreferences(MODE_PRIVATE);
 
         try {
@@ -836,7 +839,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                         progress = tempProgress;
                     }
 
-                    printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"","\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"","\"\""));
+                    printStream.printf("\"%1s\"|\"%2s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"","\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"","\"\""));
                     printStream.flush();
                     locationCursor.moveToNext();
                     lineIndex++;

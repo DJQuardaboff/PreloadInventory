@@ -14,7 +14,6 @@
         android:layout_height="0dp"
         android:paddingStart="3dp"
         android:paddingEnd="3dp"
-        android:layout_weight="1"
         android:background="@drawable/inventory_location_rounded_recycler"
         android:clipToPadding="false"
         android:paddingTop="5dp"

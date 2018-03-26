@@ -142,6 +142,8 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private DecodeResult mDecodeResult = new DecodeResult();
 
     private final WeakAsyncTask.AsyncTaskListeners<Void, Float, Pair<String, String>> saveTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(null, new WeakAsyncTask.OnDoInBackgroundListener<Void, Float, Pair<String, String>>() {
+        private static final int MAX_UPDATES = 100;
+
         @Override
         public Pair<String, String> onDoInBackground(Void... params) {
             Cursor itemCursor = mDatabase.rawQuery("SELECT " + ItemTable.Keys.BARCODE + " AS barcode, " + ItemTable.Keys.SCANNED_LOCATION_ID + " AS scanned_location_id, " + ItemTable.Keys.DATE_TIME + " AS date_time FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.SCANNER + "\" ORDER BY _id ASC", null);
@@ -191,7 +193,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     }
 
                     final float tempProgress = ((float) itemIndex) / totalItemCount;
-                    if (tempProgress * mProgressBar.getMax() > updateNum) {
+                    if (tempProgress * MAX_UPDATES > updateNum) {
                         publishProgress(tempProgress);
                         updateNum++;
                     }
@@ -209,11 +211,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             }
                         }
 
-                        printStream.printf("\"%s\"|\"%s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"", "\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"", "\"\""));
+                        printStream.printf("\"%1s\"|\"%2s\"\r\n", locationCursor.getString(locationBarcodeIndex).replace("\"", "\"\""), locationCursor.getString(locationDateTimeIndex).replace("\"", "\"\""));
                         printStream.flush();
                     }
 
-                    printStream.printf("\"%s\"|\"%s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), itemCursor.getString(itemDateTimeIndex).replace("\"", "\"\""));
+                    printStream.printf("\"%1s\"|\"%2s\"\r\n", itemCursor.getString(itemBarcodeIndex).replace("\"", "\"\""), itemCursor.getString(itemDateTimeIndex).replace("\"", "\"\""));
                     printStream.flush();
 
                     itemCursor.moveToNext();
@@ -290,15 +292,17 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             if (mChangedSinceLastArchive)
                 archiveDatabase();
 
-            //MediaScannerConnection.scanFile(PreloadInventoryActivity.this, new String[] { mOutputFile.getParent() },  null, null);
-
             postSave();
         }
     }, new WeakAsyncTask.OnCancelledListener<Pair<String, String>>() {
         @Override
         public void onCancelled(Pair<String, String> result) {
-            if (saveTaskListeners.getOnPostExecuteListener() != null)
-                saveTaskListeners.getOnPostExecuteListener().onPostExecute(result);
+            if (result == null)
+                throw new IllegalArgumentException("Null result from SaveToFileTask");
+
+            Toast.makeText(PreloadInventoryActivity.this, result.second, Toast.LENGTH_SHORT).show();
+
+            postSave();
         }
     });
 
@@ -838,6 +842,9 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         super.onCreate(savedInstanceState);
         setContentView(R.layout.preload_inventory_layout);
 
+        if (getSupportActionBar() != null)
+            getSupportActionBar().setTitle(String.format("%1s v%2s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
+
         mSharedPreferences = getSharedPreferences("preload_preferences", MODE_PRIVATE);
 
         try {
@@ -1331,7 +1338,10 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
     @Override
     protected void onDestroy() {
-        mDatabase.close();
+        if (saveTask != null && saveTask.getStatus().equals(AsyncTask.Status.RUNNING) && !saveTask.isCancelled())
+            saveTask.cancel(false);
+        if (mDatabase != null && mDatabase.isOpen())
+            mDatabase.close();
         if (mLocationRecyclerAdapter != null && mLocationRecyclerAdapter.getCursor() != null)
             mLocationRecyclerAdapter.getCursor().close();
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
@@ -1890,9 +1900,11 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 mSelectedLocationStatus = "";
 
                 itemView.setSelected(true);
+                locationTextView.setTypeface(null, Typeface.BOLD);
                 locationBackground.setBackgroundResource(R.drawable.scanned_selected_location_background);
             } else {
                 itemView.setSelected(false);
+                locationTextView.setTypeface(null, Typeface.NORMAL);
                 locationBackground.setBackgroundResource(R.drawable.scanned_deselected_location_background);
             }
 
