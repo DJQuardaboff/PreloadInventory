@@ -78,12 +78,11 @@
         app:layout_constraintHorizontal_weight="1"/>
 
 
-    <TextView
+    <View
         android:id="@+id/column_title"
         style="@style/Base.TextAppearance.AppCompat.Small"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/inventory_location_column_title"
+        android:layout_height="4dp"
         android:textColor="#7FFFFFFF"
         android:paddingTop="2dp"
         android:paddingBottom="2dp"

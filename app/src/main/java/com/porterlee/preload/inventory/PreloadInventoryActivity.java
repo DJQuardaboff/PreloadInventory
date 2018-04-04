@@ -64,6 +64,7 @@ import java.util.regex.Pattern;
 
 import com.porterlee.preload.BuildConfig;
 import com.porterlee.preload.CursorRecyclerViewAdapter;
+import com.porterlee.preload.DividerItemDecoration;
 import com.porterlee.preload.Manifest;
 import com.porterlee.preload.R;
 import com.porterlee.preload.SelectableRecyclerView;
@@ -867,8 +868,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         if (!mDatabaseFile.getParentFile().mkdirs() && !mDatabaseFile.exists())
             Log.w(TAG, "Output directory does not exist and could not be created, this may cause a problem");
 
-        mDatabaseFile.renameTo(new File(EXTERNAL_PATH, "test.db"));
-
         try {
             initialize();
         } catch (SQLiteCantOpenDatabaseException e) {
@@ -923,7 +922,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         ItemTable.create(mDatabase);
         LocationTable.create(mDatabase);
 
-        GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_ITEM_ID + " IN ( SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.PRELOAD + "\" ) AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.SCANNER + "\"");
+        GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.SCANNED_LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? ) AND " + ItemTable.Keys.STATUS + " = \"" + ItemTable.Status.SCANNED + "\"");
         GET_SCANNED_ITEM_COUNT_WITH_SCANNED_LOCATION_BARCODE_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.SCANNED_LOCATION_ID + " IN ( SELECT " + LocationTable.Keys.ID + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ? AND " + LocationTable.Keys.SOURCE + " = \"" + LocationTable.Source.SCANNER + "\" )");
         GET_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.PRELOAD + "\"");
         GET_MISPLACED_SCANNED_PRELOADED_ITEM_COUNT_IN_PRELOADED_LOCATION_STATEMENT = mDatabase.compileStatement("SELECT COUNT(*) FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.PRELOADED_ITEM_ID + " > -1 AND " + ItemTable.Keys.PRELOADED_ITEM_ID + " NOT IN ( SELECT " + ItemTable.Keys.ID + " FROM " + ItemTable.NAME + " WHERE " + ItemTable.Keys.PRELOADED_LOCATION_ID + " = ? AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.PRELOAD + "\" ) AND " + ItemTable.Keys.SOURCE + " = \"" + ItemTable.Source.SCANNER + "\"");
@@ -1006,6 +1005,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         itemRecyclerAnimator.setMoveDuration(100);
         itemRecyclerAnimator.setRemoveDuration(100);
         mItemRecyclerView.setItemAnimator(itemRecyclerAnimator);
+        mItemRecyclerView.addItemDecoration(new DividerItemDecoration(this, R.drawable.divider, DividerItemDecoration.VERTICAL_LIST));
 
         mLocationRecyclerView.setSelectedItem(-1);
         mItemRecyclerView.setSelectedItem(-1);
@@ -1268,7 +1268,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private void refreshCurrentNotMisplacedScannedItemCount() {
         switch (mSelectedLocationSource) {
             case LocationTable.Source.PRELOAD:
-                GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT.bindLong(1, mSelectedPreloadedLocationId);
+                GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT.bindString(1, mSelectedLocationBarcode);
                 mCurrentNotMisplacedScannedItemCount = (int) GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT.simpleQueryForLong();
                 break;
             default:
@@ -1340,12 +1340,25 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     protected void onDestroy() {
         if (saveTask != null && saveTask.getStatus().equals(AsyncTask.Status.RUNNING) && !saveTask.isCancelled())
             saveTask.cancel(false);
+
         if (mDatabase != null && mDatabase.isOpen())
             mDatabase.close();
+
         if (mLocationRecyclerAdapter != null && mLocationRecyclerAdapter.getCursor() != null)
             mLocationRecyclerAdapter.getCursor().close();
+
         if (mItemRecyclerAdapter != null && mItemRecyclerAdapter.getCursor() != null)
             mItemRecyclerAdapter.getCursor().close();
+
+        if (mScanner != null) {
+            try {
+                mScanner.aDecodeSetTriggerOn(0);
+                mScanner.aDecodeSetPrefix(previousPrefix);
+                mScanner.aDecodeSetPostfix(previousPostfix);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
         super.onDestroy();
     }
 

@@ -5,12 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="36dp"
     android:orientation="horizontal"
-    app:cardBackgroundColor="@color/cardview_light_background"
-    app:cardUseCompatPadding="true"
-    app:cardPreventCornerOverlap="false"
-    app:cardCornerRadius="2dp"
-    app:cardMaxElevation="1dp"
-    app:cardElevation="1dp">
+    android:background="#FFFFFFFF">
 
     <TextView
         android:id="@+id/location_text_view"
@@ -22,10 +17,10 @@
         android:layout_marginStart="32dp"
         android:foregroundGravity="left"
         android:gravity="start"
-        app:layout_constraintBottom_toBottomOf="@+id/bottom_divider"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/menu_button"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/top_divider" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageButton
         android:id="@+id/menu_button"
@@ -37,27 +32,9 @@
         android:paddingEnd="4dp"
         android:gravity="end"
         android:contentDescription="@string/menu_description"
-        app:layout_constraintTop_toTopOf="@+id/top_divider"
-        app:layout_constraintBottom_toBottomOf="@+id/bottom_divider"
-        app:layout_constraintStart_toEndOf="@+id/location_text_view"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <View
-        android:id="@+id/top_divider"
-        android:layout_width="0dp"
-        android:layout_height=".5dp"
-        android:background="#1F000000"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-    <View
-        android:id="@+id/bottom_divider"
-        android:layout_width="0dp"
-        android:layout_height=".5dp"
-        android:background="#1F000000"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/location_text_view"
         app:layout_constraintEnd_toEndOf="parent"/>
 
 </android.support.constraint.ConstraintLayout>

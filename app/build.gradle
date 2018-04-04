@@ -17,13 +17,16 @@ android {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+        }
     }
 }
 
 dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.0'
     implementation 'com.android.support:support-core-utils:27.1.0'
-    implementation 'com.android.support:cardview-v7:27.1.0'
     implementation 'com.android.support:recyclerview-v7:27.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'

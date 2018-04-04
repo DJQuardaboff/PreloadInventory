@@ -46,6 +46,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.porterlee.preload.BuildConfig;
+import com.porterlee.preload.DividerItemDecoration;
 import com.porterlee.preload.Manifest;
 import com.porterlee.preload.R;
 import com.porterlee.preload.inventory.PreloadInventoryActivity;
@@ -312,6 +313,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         itemRecyclerAnimator.setMoveDuration(100);
         itemRecyclerAnimator.setRemoveDuration(100);
         locationRecyclerView.setItemAnimator(itemRecyclerAnimator);
+        locationRecyclerView.addItemDecoration(new DividerItemDecoration(this, R.drawable.divider, DividerItemDecoration.VERTICAL_LIST));
         updateInfo();
     }
 

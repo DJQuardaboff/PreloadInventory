@@ -35,6 +35,7 @@
         android:paddingStart="0dp"
         android:text="@string/current_location_title_string"
         android:textColor="#FFFFFF"
+        android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/items_scanned_title"
         app:layout_constraintEnd_toStartOf="@id/current_location_text_view"
         app:layout_constraintHorizontal_chainStyle="spread"
@@ -163,7 +164,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent=".3" />
+        app:layout_constraintGuide_percent=".35" />
 
     <!--Button
         android:id="@+id/random_scan_button"
