@@ -7,8 +7,8 @@
         android:name="com.porterlee.preload.permission.SCANNER_RESULT_RECEIVER"
         android:protectionLevel="normal"/>
 
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="com.porterlee.mobileinventory.SCANNER_RESULT_RECEIVER"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="com.porterlee.preload.permission.SCANNER_RESULT_RECEIVER"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
 
