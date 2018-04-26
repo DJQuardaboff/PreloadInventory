@@ -22,6 +22,11 @@ android {
             debuggable true
         }
     }
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "preload_inventory-${variant.name}-${variant.versionName}.apk"
+        }
+    }
 }
 
 dependencies {
