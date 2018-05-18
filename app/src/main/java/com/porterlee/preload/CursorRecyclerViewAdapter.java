@@ -2,16 +2,13 @@ package com.porterlee.preload;
 
 import android.database.Cursor;
 import android.database.DataSetObserver;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
- 
+
 public abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
-
     private volatile Cursor mCursor;
-
     private boolean mDataValid;
-
     private int mRowIdColumn;
-
     private DataSetObserver mDataSetObserver;
 
     public CursorRecyclerViewAdapter(Cursor cursor) {
@@ -52,7 +49,7 @@ public abstract class CursorRecyclerViewAdapter<VH extends RecyclerView.ViewHold
     public abstract void onBindViewHolder(VH viewHolder, Cursor cursor);
 
     @Override
-    public void onBindViewHolder(VH viewHolder, int position) {
+    public void onBindViewHolder(@NonNull VH viewHolder, int position) {
         if (!mDataValid) {
             throw new IllegalStateException("this should only be called when the cursor is valid");
         }

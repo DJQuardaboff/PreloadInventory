@@ -1,13 +1,10 @@
 package com.porterlee.preload.location;
 
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.database.sqlite.SQLiteDatabase;
@@ -19,10 +16,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileObserver;
-import android.os.RemoteException;
-import android.os.ServiceManager;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -34,7 +28,6 @@ import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -45,9 +38,11 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.porterlee.plcscanners.AbstractScanner;
+import com.porterlee.plcscanners.Utils;
 import com.porterlee.preload.BuildConfig;
 import com.porterlee.preload.DividerItemDecoration;
-import com.porterlee.preload.Manifest;
+import com.porterlee.preload.MainActivity;
 import com.porterlee.preload.R;
 import com.porterlee.preload.inventory.PreloadInventoryActivity;
 import com.porterlee.preload.location.PreloadLocationsDatabase.LocationTable;
@@ -58,26 +53,23 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.regex.Pattern;
 
-import device.scanner.DecodeResult;
-import device.scanner.IScannerService;
-import device.scanner.ScanConst;
-import device.scanner.ScannerService;
 import me.zhanghai.android.materialprogressbar.MaterialProgressBar;
 
-import static com.porterlee.preload.MainActivity.DATE_FORMAT;
-import static com.porterlee.preload.MainActivity.MAX_ITEM_HISTORY_INCREASE;
-
-
 public class PreloadLocationsActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
+    public static final File EXTERNAL_PATH;
+    static {
+        File temp = new File(Environment.getExternalStorageDirectory(), PreloadLocationsDatabase.DIRECTORY);
+        try {
+            temp = temp.getCanonicalFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        EXTERNAL_PATH = temp;
+    }
     private static final String TAG = PreloadLocationsActivity.class.getSimpleName();
-    private String previousPrefix = "";
-    private String previousPostfix = "";
     private int maxProgress;
-    private FileObserver mFileObserver;
-    private SharedPreferences sharedPreferences;
+    //private FileObserver mFileObserver;
     private SQLiteStatement LAST_LOCATION_BARCODE_STATEMENT;
-    private Vibrator vibrator;
     private File outputFile;
     private File databaseFile;
     private File archiveDirectory;
@@ -86,70 +78,68 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     private MaterialProgressBar progressBar;
     private Menu mOptionsMenu;
     private AsyncTask<Void, Integer, String> saveTask;
-    private int maxItemHistory = MAX_ITEM_HISTORY_INCREASE;
-    private ScanResultReceiver resultReciever;
     private int locationCount = 0;
     private String lastLocationBarcode = "-";
     private RecyclerView locationRecyclerView;
     private RecyclerView.Adapter locationRecyclerAdapter;
     private SQLiteDatabase db;
-    private IScannerService mScanner = null;
-    private DecodeResult mDecodeResult = new DecodeResult();
 
-    private BroadcastReceiver mScanKeyEventReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (ScanConst.INTENT_SCANKEY_EVENT.equals(intent.getAction())) {
-                KeyEvent event = intent.getParcelableExtra(ScanConst.EXTRA_SCANKEY_EVENT);
-                switch (event.getKeyCode()) {
-                    case ScanConst.KEYCODE_SCAN_FRONT:
-                        onScanKeyEvent(event.getAction());
-                        break;
-                    case ScanConst.KEYCODE_SCAN_LEFT:
-                        onScanKeyEvent(event.getAction());
-                        break;
-                    case ScanConst.KEYCODE_SCAN_RIGHT:
-                        onScanKeyEvent(event.getAction());
-                        break;
-                    case ScanConst.KEYCODE_SCAN_REAR:
-                        onScanKeyEvent(event.getAction());
-                        break;
-                }
-            }
-        }
-    };
-
-    private void onScanKeyEvent(int action) {
-        if (mScanner != null) {
-            try {
-                if (action == KeyEvent.ACTION_DOWN) {
-                    mScanner.aDecodeSetTriggerOn(1);
-                } else if (action == KeyEvent.ACTION_UP) {
-                    mScanner.aDecodeSetTriggerOn(0);
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
+    private AbstractScanner getScanner() {
+        return AbstractScanner.getInstance();
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getScanner().setActivity(this);
+
+        if (!getScanner().init()) {
+            finish();
+            toastLong("Scanner failed to initialize");
+            return;
+        }
+
+        getScanner().setOnBarcodeScannedListener(new AbstractScanner.OnBarcodeScannedListener() {
+            @Override
+            public void onBarcodeScanned(String barcode) {
+                if (isItem(barcode) || isContainer(barcode)) {
+                    getScanner().onScanComplete(false);
+                    toastShort("Cannot accept items in preload location mode");
+                    return;
+                }
+
+                if (!isLocation(barcode)) {
+                    getScanner().onScanComplete(false);
+                    toastShort("Barcode \"" + barcode + "\" not recognised");
+                    return;
+                }
+
+                if (saveTask != null) {
+                    getScanner().onScanComplete(false);
+                    toastShort("Cannot scan while saving");
+                    return;
+                }
+
+                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
+
+                if (cursor.getCount() > 0) {
+                    getScanner().onScanComplete(false);
+                    toastShort("Location was already scanned");
+                    cursor.close();
+                    return;
+                }
+
+                getScanner().onScanComplete(true);
+                cursor.close();
+                addLocation(barcode);
+            }
+        });
+
         setContentView(R.layout.preload_locations_layout);
 
         if (getSupportActionBar() != null)
             getSupportActionBar().setTitle(String.format("%1s v%2s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
-
-        sharedPreferences = getPreferences(MODE_PRIVATE);
-
-        try {
-            initScanner();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-
-        vibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
 
         archiveDirectory = new File(getFilesDir() + "/" + PreloadLocationsDatabase.ARCHIVE_DIRECTORY);
         //noinspection ResultOfMethodCallIgnored
@@ -168,7 +158,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             e.printStackTrace();
             try {
                 if (databaseFile.renameTo(File.createTempFile("error", ".db", archiveDirectory))) {
-                    Toast.makeText(this, "There was an error loading the list file. It has been archived", Toast.LENGTH_SHORT).show();
+                    toastShort("There was an error loading the list file. It has been archived");
                 } else {
                     databaseLoadingError();
                 }
@@ -180,36 +170,38 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     }
 
     private void databaseLoadingError() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-        builder.setCancelable(false);
-        builder.setTitle("Database Load Error");
-        builder.setMessage(
-                "There was an error loading the list file and it could not be archived.\n" +
-                "\n" +
-                "Would you like to delete the it?\n" +
-                "\n" +
-                "Answering no will close the app."
-        );
-        builder.setNegativeButton("no", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finish();
-            }
-        });
-        builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (!databaseFile.delete()) {
-                    Toast.makeText(PreloadLocationsActivity.this, "The file could not be deleted", Toast.LENGTH_SHORT).show();
-                    finish();
-                    return;
-                }
-                Toast.makeText(PreloadLocationsActivity.this, "The file was deleted", Toast.LENGTH_SHORT).show();
-                initialize();
-            }
-        });
-
-        builder.create().show();
+        getScanner().setIsEnabled(false);
+        new AlertDialog.Builder(PreloadLocationsActivity.this)
+                .setCancelable(false)
+                .setTitle("Database Load Error")
+                .setMessage(
+                        "There was an error loading the list file and it could not be archived.\n" +
+                        "\n" +
+                        "Would you like to delete the it?\n" +
+                        "\n" +
+                        "Answering no will close the app."
+                ).setNegativeButton(R.string.action_no, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                }).setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (!databaseFile.delete()) {
+                            toastShort("The file could not be deleted");
+                            finish();
+                            return;
+                        }
+                        toastShort("The file was deleted");
+                        initialize();
+                    }
+                }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        getScanner().setIsEnabled(true);
+                    }
+                }).create().show();
     }
 
     private void initialize() throws SQLiteCantOpenDatabaseException {
@@ -233,7 +225,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 randomScan();
             }
         });*/
-
+        /*
         mFileObserver = new FileObserver(PreloadInventoryActivity.EXTERNAL_PATH.getAbsolutePath()) {
             @Override
             public void onEvent(int event, @Nullable String path) {
@@ -253,7 +245,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 });
             }
         };
-
+        */
         locationRecyclerView = findViewById(R.id.location_list_view);
         locationRecyclerView.setHasFixedSize(true);
         locationRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -265,9 +257,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
             @Override
             public int getItemCount() {
-                int count = locationCount;
-                count = Math.min(count, maxItemHistory);
-                return count;
+                return locationCount;
             }
 
             @NonNull
@@ -294,18 +284,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 return 0;
             }
         };
-        locationRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                super.onScrollStateChanged(recyclerView, newState);
-                if (!recyclerView.canScrollVertically(1) && locationRecyclerAdapter.getItemCount() >= maxItemHistory) {
-                    //Log.v(TAG, "Scroll state changed to: " + (newState == RecyclerView.SCROLL_STATE_IDLE ? "SCROLL_STATE_IDLE" : (newState == RecyclerView.SCROLL_STATE_DRAGGING ? "SCROLL_STATE_DRAGGING" : "SCROLL_STATE_SETTLING")));
-
-                    maxItemHistory += MAX_ITEM_HISTORY_INCREASE;
-                    locationRecyclerAdapter.notifyDataSetChanged();
-                }
-            }
-        });
         locationRecyclerView.setAdapter(locationRecyclerAdapter);
         final RecyclerView.ItemAnimator itemRecyclerAnimator = new DefaultItemAnimator();
         itemRecyclerAnimator.setAddDuration(100);
@@ -318,70 +296,40 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        getScanner().onStart();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-
         refreshFileMenuOption();
-
-        mFileObserver.startWatching();
-        resultReciever = new ScanResultReceiver();
-        IntentFilter resultFilter = new IntentFilter();
-        resultFilter.setPriority(0);
-        resultFilter.addAction("device.scanner.USERMSG");
-        registerReceiver(resultReciever, resultFilter, Manifest.permission.SCANNER_RESULT_RECEIVER, null);
-        registerReceiver(mScanKeyEventReceiver, new IntentFilter(ScanConst.INTENT_SCANKEY_EVENT));
-        loadCurrentScannerOptions();
-
-        if (mScanner != null) {
-            try {
-                mScanner.aDecodeSetTriggerOn(0);
-                previousPrefix = mScanner.aDecodeGetPrefix();
-                previousPostfix = mScanner.aDecodeGetPostfix();
-                mScanner.aDecodeSetPrefix("");
-                mScanner.aDecodeSetPostfix("");
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
+        //mFileObserver.startWatching();
+        getScanner().onResume();
     }
 
     @Override
     protected void onPause() {
+        getScanner().onPause();
+        //mFileObserver.stopWatching();
         super.onPause();
+    }
 
-        mFileObserver.stopWatching();
-
-        unregisterReceiver(resultReciever);
-        unregisterReceiver(mScanKeyEventReceiver);
-
-        if (mScanner != null) {
-            try {
-                mScanner.aDecodeSetTriggerOn(0);
-                mScanner.aDecodeSetPrefix(previousPrefix);
-                mScanner.aDecodeSetPostfix(previousPostfix);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
+    @Override
+    protected void onStop() {
+        getScanner().onStop();
+        super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        getScanner().onDestroy();
         if (saveTask != null) {
             saveTask.cancel(false);
             saveTask = null;
         }
-
-        if (mScanner != null) {
-            try {
-                mScanner.aDecodeSetTriggerOn(0);
-                mScanner.aDecodeSetPrefix(previousPrefix);
-                mScanner.aDecodeSetPostfix(previousPostfix);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
+        super.onDestroy();
     }
 
     @Override
@@ -390,8 +338,13 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.preload_locations_menu, menu);
         refreshFileMenuOption();
-        loadCurrentScannerOptions();
-        return true;
+        return super.onCreateOptionsMenu(menu) | getScanner().onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onMenuOpened(int featureId, Menu menu) {
+        refreshFileMenuOption();
+        return super.onMenuOpened(featureId, menu);
     }
 
     @Override
@@ -399,7 +352,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         switch (item.getItemId()) {
             case R.id.action_save_to_file:
                 if (locationRecyclerAdapter.getItemCount() <= 0) {
-                    Toast.makeText(this, "There are no locations in this list", Toast.LENGTH_SHORT).show();
+                    toastShort("There are no locations in this list");
                     return true;
                 }
 
@@ -407,6 +360,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                     if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                         //Toast.makeText(this, "Write external storage permission is required for this", Toast.LENGTH_SHORT).show();
                         ActivityCompat.requestPermissions(this, new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                        return true;
                     }
                 }
 
@@ -423,55 +377,66 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 return true;
             case R.id.action_cancel_save:
                 if (saveTask != null) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setCancelable(true);
-                    builder.setTitle("Cancel Save");
-                    builder.setMessage("Are you sure you want to stop saving this file?");
-                    builder.setNegativeButton("no", null);
-                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            if (saveTask != null && !saveTask.isCancelled())
-                                saveTask.cancel(false);
-                        }
-                    });
-                    builder.create().show();
+                    getScanner().setIsEnabled(false);
+                    new AlertDialog.Builder(this)
+                            .setCancelable(true)
+                            .setTitle("Cancel Save")
+                            .setMessage("Are you sure you want to stop saving this file?")
+                            .setNegativeButton(R.string.action_no, null)
+                            .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    if (saveTask != null && !saveTask.isCancelled()) {
+                                        saveTask.cancel(false);
+                                    }
+                                }
+                            }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                @Override
+                                public void onDismiss(DialogInterface dialog) {
+                                    getScanner().setIsEnabled(true);
+                                }
+                            }).create().show();
                 } else {
                     postSave();
                 }
                 return true;
             case R.id.action_clear_list:
                 if (locationRecyclerAdapter.getItemCount() > 0) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setCancelable(true);
-                    builder.setTitle("Clear List");
-                    builder.setMessage("Are you sure you want to clear this list?");
-                    builder.setNegativeButton("no", null);
-                    builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            if (saveTask != null) {
-                                return;
-                            }
+                    getScanner().setIsEnabled(false);
+                    new AlertDialog.Builder(this)
+                            .setCancelable(true)
+                            .setTitle("Clear List")
+                            .setMessage("Are you sure you want to clear this list?")
+                            .setNegativeButton("no", null)
+                            .setPositiveButton("yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    if (saveTask != null) {
+                                        return;
+                                    }
 
-                            changedSinceLastArchive = true;
+                                    changedSinceLastArchive = true;
+                                    db.delete(LocationTable.NAME, null, null);
 
-                            db.delete(LocationTable.NAME, null, null);
+                                    locationCount = 0;
+                                    lastLocationBarcode = "-";
 
-                            locationCount = 0;
-                            lastLocationBarcode = "-";
-
-                            locationRecyclerAdapter.notifyDataSetChanged();
-                            locationRecyclerAdapter.notifyItemRangeRemoved(0, locationRecyclerAdapter.getItemCount());
-                            updateInfo();
-                            Toast.makeText(PreloadLocationsActivity.this, "List cleared", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    builder.create().show();
-                } else
-                    Toast.makeText(this, "There are no locations in this list", Toast.LENGTH_SHORT).show();
+                                    locationRecyclerAdapter.notifyDataSetChanged();
+                                    locationRecyclerAdapter.notifyItemRangeRemoved(0, locationRecyclerAdapter.getItemCount());
+                                    updateInfo();
+                                    toastShort("List cleared");
+                                }
+                            }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                @Override
+                                public void onDismiss(DialogInterface dialog) {
+                                    getScanner().setIsEnabled(true);
+                                }
+                            }).create().show();
+                } else {
+                    toastShort("There are no locations in this list");
+                }
                 return true;
-            case R.id.action_continuous:
+            /*case R.id.action_continuous:
                 try {
                     if (!item.isChecked()){
                         mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
@@ -484,13 +449,36 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                     item.setChecked(false);
                     Toast.makeText(this, "An error occured while changing scanning mode", Toast.LENGTH_SHORT).show();
                 }
-                return true;
+                return true;*/
             case R.id.action_start_inventory:
                 askToInventory();
                 return true;
             default:
-                return super.onOptionsItemSelected(item);
+                return super.onOptionsItemSelected(item) | getScanner().onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        return super.onPrepareOptionsMenu(menu) || getScanner().onPrepareOptionsMenu(menu);
+    }
+
+    private void toastShort(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void toastLong(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void refreshFileMenuOption() {
@@ -498,60 +486,32 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             mOptionsMenu.findItem(R.id.action_start_inventory).setEnabled(PreloadInventoryActivity.INPUT_FILE.exists());
     }
 
-    private void initScanner() throws RemoteException {
-        mScanner = IScannerService.Stub.asInterface(ServiceManager.getService("ScannerService"));
-
-        if (mScanner != null) {
-
-            mScanner.aDecodeAPIInit();
-            //try {
-                //Thread.sleep(500);
-            //} catch (InterruptedException e) { }
-            mScanner.aDecodeSetDecodeEnable(1);
-            mScanner.aDecodeSetResultType(ScannerService.ResultType.DCD_RESULT_USERMSG);
-        }
-    }
-
-    private void loadCurrentScannerOptions() {
-        if (mOptionsMenu != null) {
-            MenuItem item = mOptionsMenu.findItem(R.id.action_continuous);
-            try {
-                if (mScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_AUTO) {
-                    mScanner.aDecodeSetTriggerMode(ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
-                    item.setChecked(true);
-                } else
-                    item.setChecked(mScanner.aDecodeGetTriggerMode() == ScannerService.TriggerMode.DCD_TRIGGER_MODE_CONTINUOUS);
-            } catch (NullPointerException e) {
-                e.printStackTrace();
-                item.setVisible(false);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     public void askToInventory() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-        builder.setCancelable(false);
-        builder.setTitle("New Inventory");
-        builder.setMessage(
-                "Would you like to start a new inventory with this data?\n" +
-                "\n" +
-                "This will overwrite any inventory previously started."
-        );
-        builder.setNegativeButton("no", null);
-        builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (PreloadInventoryActivity.INPUT_FILE.exists()) {
-                    startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
-                    finish();
-                } else {
-                    Toast.makeText(PreloadLocationsActivity.this, "File no longer exists", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        builder.create().show();
+        getScanner().setIsEnabled(false);
+        new AlertDialog.Builder(this)
+                .setCancelable(false)
+                .setTitle("New Inventory")
+                .setMessage(
+                        "Would you like to start a new inventory with this data?\n" +
+                        "\n" +
+                        "This will overwrite any inventory previously started."
+                ).setNegativeButton(R.string.action_no, null)
+                .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (PreloadInventoryActivity.INPUT_FILE.exists()) {
+                            startActivity(new Intent(PreloadLocationsActivity.this, PreloadInventoryActivity.class));
+                            finish();
+                        } else {
+                            toastShort("File no longer exists");
+                        }
+                    }
+                }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        getScanner().setIsEnabled(true);
+                    }
+                }).create().show();
     }
 
     public int getLocationCount() {
@@ -586,8 +546,8 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         mOptionsMenu.findItem(R.id.action_clear_list).setVisible(true);
         onPrepareOptionsMenu(mOptionsMenu);
     }
-
-    /*private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    /*
+    private static final String alphaNumeric = " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     private void randomScan() {
         Random r = new Random();
@@ -600,48 +560,8 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
             barcode = barcode.toUpperCase();
 
         scanBarcode(barcode);
-    }*/
-
-    private void scanBarcode(String barcode) {
-        if (isItem(barcode) || isContainer(barcode)) {
-            vibrate();
-            Toast.makeText(this, "Cannot accept items in preload location mode", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (!isLocation(barcode)) {
-            vibrate();
-            Toast.makeText(this, "Barcode \"" + barcode + "\" not recognised", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        if (saveTask != null) {
-            vibrate();
-            Toast.makeText(this, "Cannot scan while saving", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
-
-        if (cursor.getCount() > 0) {
-            cursor.close();
-            vibrate();
-            Toast.makeText(this, "Location was already scanned", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        cursor.close();
-        addLocation(barcode);
     }
-
-    private void vibrate() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot((long) 300, VibrationEffect.DEFAULT_AMPLITUDE));
-        } else {
-            vibrator.vibrate((long) 300);
-        }
-    }
-
+    */
     private void addLocation(@NonNull String barcode) {
         if (saveTask != null) return;
 
@@ -651,8 +571,8 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
         if (db.insert(LocationTable.NAME, null, newItem) == -1) {
             Log.e(TAG, "Error adding location \"" + barcode + "\" to the list");
-            Toast.makeText(this, "Error adding location \"" + barcode + "\" to the list", Toast.LENGTH_SHORT).show();
-            vibrate();
+            toastShort("Error adding location \"" + barcode + "\" to the list");
+            Utils.vibrate(getApplicationContext());
             return;
         }
 
@@ -664,9 +584,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         lastLocationBarcode = barcode;
         locationRecyclerAdapter.notifyItemInserted(0);
 
-        if (locationRecyclerAdapter.getItemCount() == maxItemHistory)
-            locationRecyclerAdapter.notifyItemRemoved(locationRecyclerAdapter.getItemCount() - 1);
-
         locationRecyclerAdapter.notifyItemRangeChanged(0, locationRecyclerAdapter.getItemCount());
         locationRecyclerView.scrollToPosition(0);
 
@@ -676,7 +593,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     private void removeLocation(@NonNull PreloadLocationViewHolder holder) {
         if (saveTask != null) return;
 
-        if (db.delete(LocationTable.NAME, PreloadLocationsDatabase.ID + " = ?;", new String[] {String.valueOf(holder.getId())}) > 0) {
+        if (db.delete(LocationTable.NAME, PreloadLocationsDatabase.ID + " = ?;", new String[] { String.valueOf(holder.getId()) }) > 0) {
 
             locationCount--;
 
@@ -691,7 +608,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
             updateInfo();
         } else {
-            vibrate();
+            Utils.vibrate(getApplicationContext());
             Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.ID + " = ?;", new String[] {String.valueOf(holder.getId())});
             String barcode = "";
 
@@ -702,7 +619,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
             cursor.close();
             Log.e(TAG, "Error removing location \"" + barcode +"\" from the list");
-            Toast.makeText(PreloadLocationsActivity.this, "Error removing location \"" + barcode +"\" from the list", Toast.LENGTH_SHORT).show();
+            toastShort("Error removing location \"" + barcode +"\" from the list");
         }
     }
 
@@ -725,7 +642,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     }
 
     private CharSequence formatDate(long millis) {
-        return DateFormat.format(DATE_FORMAT, millis).toString();
+        return DateFormat.format(MainActivity.DATE_FORMAT, millis).toString();
     }
 
     private boolean isItem(@NonNull String barcode) {
@@ -763,25 +680,28 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                     inflater.inflate(R.menu.popup_menu_location, popup.getMenu());
                     popup.getMenu().findItem(R.id.remove_location).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                         @Override
-                        public boolean onMenuItemClick(MenuItem menuItem) {
+                        public boolean onMenuItemClick(MenuItem item) {
                             if (saveTask != null) {
-                                Toast.makeText(PreloadLocationsActivity.this, "Cannot edit list while saving", Toast.LENGTH_SHORT).show();
+                                toastShort("Cannot edit list while saving");
                                 return true;
                             }
-                            AlertDialog.Builder builder = new AlertDialog.Builder(PreloadLocationsActivity.this);
-                            builder.setCancelable(true);
-                            builder.setTitle("Remove location");
-                            builder.setMessage("Are you sure you want to remove location \"" + barcode + "\"?");
-                            builder.setNegativeButton("no", null);
-                            builder.setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    //Log.d(TAG, "Removing location at position " + preloadLocationViewHolder.getAdapterPosition() + " with barcode " + preloadLocationViewHolder.getBarcode());
-                                    removeLocation(PreloadLocationViewHolder.this);
-                                }
-                            });
-                            builder.create().show();
-
+                            getScanner().setIsEnabled(false);
+                            new AlertDialog.Builder(PreloadLocationsActivity.this)
+                                    .setCancelable(true)
+                                    .setTitle("Remove location")
+                                    .setMessage("Are you sure you want to remove location \"" + barcode + "\"?")
+                                    .setNegativeButton(R.string.action_no, null)
+                                    .setPositiveButton(R.string.action_yes, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            removeLocation(PreloadLocationViewHolder.this);
+                                        }
+                                    }).setOnDismissListener(new DialogInterface.OnDismissListener() {
+                                        @Override
+                                        public void onDismiss(DialogInterface dialog) {
+                                            getScanner().setIsEnabled(true);
+                                        }
+                                    }).create().show();
                             return true;
                         }
                     });
@@ -825,6 +745,7 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 int lineIndex = 0;
 
                 //
+                //noinspection StringConcatenationMissingWhitespace
                 String tempText = BuildConfig.APPLICATION_ID.split(Pattern.quote("."))[2] + ".location|" + BuildConfig.BUILD_TYPE + "|v" + BuildConfig.VERSION_NAME + "|" + BuildConfig.VERSION_CODE + "\r\n";
                 printStream.print(tempText);
                 printStream.flush();
@@ -908,20 +829,20 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                 savingToast = null;
             }
 
-            Toast.makeText(PreloadLocationsActivity.this, result, Toast.LENGTH_SHORT).show();
+            toastShort(result);
             if (changedSinceLastArchive)
                 archiveDatabase();
             postSave();
         }
 
         @Override
-        protected void onCancelled(String s) {
+        protected void onCancelled(String result) {
             if (savingToast != null) {
                 savingToast.cancel();
                 savingToast = null;
             }
 
-            Toast.makeText(PreloadLocationsActivity.this, s, Toast.LENGTH_SHORT).show();
+            toastShort(result);
             postSave();
         }
     }
@@ -958,27 +879,5 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         }
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-
-    private class ScanResultReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (mScanner != null) {
-                try {
-                    mScanner.aDecodeGetResult(mDecodeResult);
-                    String barcode = mDecodeResult.decodeValue;
-
-                    if (barcode.equals("")) {
-                        Toast.makeText(PreloadLocationsActivity.this, "Error scanning barcode: Empty result", Toast.LENGTH_SHORT).show();
-                    } else if (!barcode.equals("SCAN AGAIN")) {
-                        scanBarcode(barcode);
-                    }
-                    //System.out.println("symName: " + mDecodeResult.symName);
-                    //System.out.println("decodeValue: " + mDecodeResult.decodeValue);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 }

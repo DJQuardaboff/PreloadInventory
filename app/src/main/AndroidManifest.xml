@@ -3,14 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.porterlee.preload">
 
-    <permission
-        android:name="com.porterlee.preload.permission.SCANNER_RESULT_RECEIVER"
-        android:protectionLevel="normal"/>
-
-    <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="com.porterlee.preload.permission.SCANNER_RESULT_RECEIVER"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
 
     <application
         android:allowBackup="true"
@@ -41,7 +35,7 @@
 
             <intent-filter>
                 <action android:name="com.porterlee.mobileinventory.PRELOAD_LOCATIONS"/>
-                <category android:name="android.intent.category.ALTERNATIVE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
 

@@ -1,5 +1,6 @@
 package com.porterlee.preload;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -7,10 +8,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.porterlee.preload.inventory.PreloadInventoryActivity;
@@ -18,24 +21,24 @@ import com.porterlee.preload.location.PreloadLocationsActivity;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    private static final String[] REQUIRED_PERMISSIONS = new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SCANNER_RESULT_RECEIVER, android.Manifest.permission.BROADCAST_STICKY};
-    public static final String FILE_NAME_KEY = "file_name";
-    public static final String DUPLICATE_BARCODE_TAG = "D";
+    private static final String[] REQUIRED_PERMISSIONS = new String[] { android.Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE };
     public static final String DATE_FORMAT = "yyyy/MM/dd kk:mm:ss";
-    public static final int MAX_ITEM_HISTORY_INCREASE = 25;
-    public static final int ERROR_COLOR = Color.RED;
     private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-            askForPermission();
-        else
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (askForPermission()) {
+                startApplication();
+            }
+        } else {
             startApplication();
+        }
     }
 
     @Nullable
@@ -77,25 +80,27 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     private boolean askForPermission() {
-        boolean hasPermissions = true;
+        //Log.e(TAG, "askForPermission()");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             ArrayList<String> permissionsToGrant = new ArrayList<>();
             for (String requiredPermission : REQUIRED_PERMISSIONS) {
                 if (checkSelfPermission(requiredPermission) != PackageManager.PERMISSION_GRANTED) {
                     permissionsToGrant.add(requiredPermission);
-                    hasPermissions = false;
+                    //Log.e(TAG, requiredPermission + " is not granted");
                 }
             }
 
-            Object[] permissionStringsAsObjects = permissionsToGrant.toArray();
-            String[] permissionStrings = new String[permissionStringsAsObjects.length];
+            if (permissionsToGrant.size() > 0) {
+                String[] permissionsStringsToGrant = new String[permissionsToGrant.size()];
+                for (int i = 0; i < permissionsStringsToGrant.length; i++) {
+                    permissionsStringsToGrant[i] = permissionsToGrant.get(i);
+                }
 
-            for (int i = 0; i < permissionStrings.length; i++)
-                permissionStrings[i] = (String) permissionStringsAsObjects[i];
-
-            ActivityCompat.requestPermissions(this, permissionStrings, 0);
+                ActivityCompat.requestPermissions(this, permissionsStringsToGrant, 0);
+                return false;
+            }
         }
-        return hasPermissions;
+        return true;
     }
 
     @Override
@@ -115,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
     }
 
     private void startApplication() {
+        //Log.e(TAG, "startApplication()");
         try {
             startActivity(getPreloadIntent(this));
             finish();

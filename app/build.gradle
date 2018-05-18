@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 27
-    
     defaultConfig {
         applicationId "com.porterlee.preload"
         minSdkVersion 17
@@ -11,7 +10,6 @@ android {
         versionName "1.4"
         //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
-
     buildTypes {
         release {
             minifyEnabled true
@@ -22,25 +20,44 @@ android {
             debuggable true
         }
     }
+    flavorDimensions "scannerSdk"
+    productFlavors {
+        janam_XM5 {}
+        janam_XT2_XT2__XM75_XT100_XG200 {}
+        zebra_emdk_symbol_26 {}
+        /*
+        applicationVariants.all {
+            variant ->
+                android.productFlavors.all {
+                    flavor ->
+                        println(flavor.name)
+                        variant.buildConfigField 'boolean', 'is_' + flavor.getName(), String.valueOf(variant.getName().startsWith(flavor.name))
+                }
+        }
+        */
+    }
     android.applicationVariants.all { variant ->
         variant.outputs.all {
             outputFileName = "preload_inventory-${variant.name}-${variant.versionName}.apk"
         }
     }
+    configurations.all {
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    }
 }
 
 dependencies {
+    janam_XM5Implementation project(':plc_scanners-janam_XM5Release-1.1')
+    janam_XT2_XT2__XM75_XT100_XG200Implementation project(':plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1')
+    zebra_emdk_symbol_26Implementation project(':plc_scanners-zebra_emdk_symbol_26Release-1.1')
+
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:support-core-utils:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'
-    //testImplementation 'junit:junit:4.12'
-    //androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    //androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-    //implementation project(':device.hijack')
-    //implementation project(':device.nfc')
-    implementation project(':device.scanner')
-    //implementation project(':device.service')
     implementation 'org.jetbrains:annotations-java5:15.0'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }

@@ -2,12 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/PreloadInventory.iml" filepath="$PROJECT_DIR$/PreloadInventory.iml" />
+      <module fileurl="file://$PROJECT_DIR$/PreloadInventory.backup.iml" filepath="$PROJECT_DIR$/PreloadInventory.backup.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/device.hijack/device.hijack.iml" filepath="$PROJECT_DIR$/device.hijack/device.hijack.iml" />
-      <module fileurl="file://$PROJECT_DIR$/device.nfc/device.nfc.iml" filepath="$PROJECT_DIR$/device.nfc/device.nfc.iml" />
-      <module fileurl="file://$PROJECT_DIR$/device.scanner/device.scanner.iml" filepath="$PROJECT_DIR$/device.scanner/device.scanner.iml" />
-      <module fileurl="file://$PROJECT_DIR$/device.service/device.service.iml" filepath="$PROJECT_DIR$/device.service/device.service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plc_scanners-janam_XM5Release-1.1/plc_scanners-janam_XM5Release-1.1.iml" filepath="$PROJECT_DIR$/plc_scanners-janam_XM5Release-1.1/plc_scanners-janam_XM5Release-1.1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1.iml" filepath="$PROJECT_DIR$/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1/plc_scanners-janam_XT2_XT2__XM75_XT100_XG200Release-1.1.iml" />
+      <module fileurl="file://$PROJECT_DIR$/plc_scanners-zebra_emdk_symbol_26Release-1.1/plc_scanners-zebra_emdk_symbol_26Release-1.1.iml" filepath="$PROJECT_DIR$/plc_scanners-zebra_emdk_symbol_26Release-1.1/plc_scanners-zebra_emdk_symbol_26Release-1.1.iml" />
     </modules>
   </component>
 </project>

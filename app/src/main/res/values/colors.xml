@@ -5,8 +5,8 @@
     <color name="colorPrimaryLight">#FF8F6C</color>
     <color name="colorAccent">#536DFE</color>
 
-    <color name="misplaced_scanned_preloaded_item_color">#5FF44336</color>
-    <color name="not_misplaced_scanned_preloaded_item_color">#5F4CAF50</color>
-    <color name="not_misplaced_preloaded_item_color">#FFFFFFFF</color>
-    <color name="scanned_item_color">#5FF44336</color>
+    <color name="item_color_red">#5FF44336</color>
+    <color name="item_color_green">#5F4CAF50</color>
+    <color name="item_color_white">#FFFFFFFF</color>
+    <color name="item_color_yellow">#5ff9c702</color>
 </resources>

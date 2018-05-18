@@ -29,10 +29,10 @@
         android:title="@string/action_clear_scanned_items_string"
         app:showAsAction="never"/-->
 
-    <item
+    <!--item
         android:id="@+id/action_continuous"
         android:title="@string/continuous_mode_title"
         android:checkable="true"
-        app:showAsAction="never"/>
+        app:showAsAction="never"/-->
 
 </menu>
