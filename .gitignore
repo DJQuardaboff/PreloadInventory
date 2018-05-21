@@ -5,5 +5,8 @@
 /.idea/libraries
 .DS_Store
 /build
+/.idea/caches
 /captures
 .externalNativeBuild
+*.apk
+app/release/output.json

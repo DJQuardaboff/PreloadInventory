@@ -20,8 +20,7 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
     private ArrayList<Utils.Holder<Integer>> mHolderList = new ArrayList<>();
     private HashMap<Utils.Holder, Integer> mHolderToPreloadedCursorIndexMap = new HashMap<>();
     private HashMap<String, Utils.Holder<Integer>> mBarcodeToHolderMap = new HashMap<>();
-    private SparseArray<Utils.Holder<Integer>> mIdToHolderMap = new SparseArray<>();
-    private ArrayList<Utils.Holder<Integer>> mDuplicateHolders = new ArrayList<>();
+    private ArrayList<String> mDuplicateBarcodes = new ArrayList<>();
 
     public ItemCursorRecyclerViewAdapter(Cursor cursor) {
         mCursor = cursor;
@@ -120,8 +119,8 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
         mHolderList.clear();
         mHolderToPreloadedCursorIndexMap.clear();
         mBarcodeToHolderMap.clear();
-        mIdToHolderMap.clear();
-        mDuplicateHolders.clear();
+        mDuplicateBarcodes.clear();
+        SparseArray<Utils.Holder<Integer>> idToHolderMap = new SparseArray<>();
         ArrayList<Utils.Holder> preloadedHolders = new ArrayList<>();
         final int preloadedItemIdColumnIndex = mCursor.getColumnIndex("preloaded_item_id");
         final int barcodeColumnIndex = mCursor.getColumnIndex("barcode");
@@ -135,21 +134,21 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
                 mHolderList.add(current);
                 mHolderToPreloadedCursorIndexMap.put(current, current.get());
                 mBarcodeToHolderMap.put(mCursor.getString(barcodeColumnIndex), current);
-                mIdToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
+                idToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
                 preloadedHolders.add(current);
             } else if (PreloadInventoryDatabase.ItemTable.Source.SCANNER.equals(mCursor.getString(sourceColumnIndex))) {
                 if (PreloadInventoryDatabase.ItemTable.Status.MISPLACED.equals(mCursor.getString(statusColumnIndex))) {
                     Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                     mHolderList.add(0, current);
                     mBarcodeToHolderMap.put(mCursor.getString(barcodeColumnIndex), current);
-                    mIdToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
+                    idToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
                 } else {
-                    final Utils.Holder<Integer> preloadItemHolder = mIdToHolderMap.get(mCursor.getInt(preloadedItemIdColumnIndex), null);
+                    final Utils.Holder<Integer> preloadItemHolder = idToHolderMap.get(mCursor.getInt(preloadedItemIdColumnIndex), null);
                     if (preloadItemHolder == null) {
                         Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                         mHolderList.add(0, current);
                         mBarcodeToHolderMap.put(mCursor.getString(barcodeColumnIndex), current);
-                        mIdToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
+                        idToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
                     } else {
                         if (preloadedHolders.contains(preloadItemHolder)) {
                             preloadItemHolder.set(mCursor.getPosition());
@@ -158,8 +157,7 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
                             Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                             mHolderList.add(mHolderList.indexOf(preloadItemHolder), current);
                             mHolderToPreloadedCursorIndexMap.put(current, mHolderToPreloadedCursorIndexMap.get(preloadItemHolder));
-                            mDuplicateHolders.add(preloadItemHolder);
-                            mDuplicateHolders.add(current);
+                            mDuplicateBarcodes.add(mCursor.getString(barcodeColumnIndex));
                         }
                     }
                 }
@@ -169,8 +167,8 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
         }
     }
 
-    public boolean getIsDuplicate(int index) {
-        return mDuplicateHolders.contains(mHolderList.get(index));
+    public boolean getIsDuplicate(String barcode) {
+        return mDuplicateBarcodes.contains(barcode);
     }
 
     public int getPreloadedDataIndex(int index) {

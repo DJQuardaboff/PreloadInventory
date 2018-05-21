@@ -121,7 +121,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private CursorRecyclerViewAdapter<LocationViewHolder> mLocationRecyclerAdapter;
     private ItemCursorRecyclerViewAdapter<ItemViewHolder> mItemRecyclerAdapter;
     private volatile SQLiteDatabase mDatabase;
-    private boolean isScannerDisabled = false;
 
     private final WeakAsyncTask.AsyncTaskListeners<Void, Float, Pair<String, String>> saveTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(null, new WeakAsyncTask.OnDoInBackgroundListener<Void, Float, Pair<String, String>>() {
         private static final int MAX_UPDATES = 100;
@@ -1823,7 +1822,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         private String dateTime = "";
         boolean isSelected = false;
 
-        ScannedLocationViewHolder(final ViewGroup parent) {
+        ScannedLocationViewHolder(@NotNull final ViewGroup parent) {
             super(LayoutInflater.from(parent.getContext()).inflate(R.layout.scanned_location_layout, parent, false));
             locationTextView = itemView.findViewById(R.id.location_text_view);
             locationBackground = itemView.findViewById(R.id.location_background);
@@ -1985,7 +1984,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             this.dateTime = cursor.getString(cursor.getColumnIndex("date_time"));
 
             int preloadedDataIndex = mItemRecyclerAdapter.getPreloadedDataIndex(getAdapterPosition());
-            //todo case if preloadedDataIndex < 0
             if (preloadedDataIndex >= 0) {
                 cursor.moveToPosition(preloadedDataIndex);
             }
@@ -2042,7 +2040,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_white, null));
             } else if (status.equals(ItemTable.Status.MISPLACED) || isNonPreloadedItem) {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_red, null));
-            } else if (mItemRecyclerAdapter.getIsDuplicate(getAdapterPosition())) {
+            } else if (mItemRecyclerAdapter.getIsDuplicate(barcode)) {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_yellow, null));
             } else {
                 itemView.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.item_color_green, null));

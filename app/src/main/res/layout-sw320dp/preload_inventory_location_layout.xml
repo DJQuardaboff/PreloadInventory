@@ -61,8 +61,8 @@
             android:layout_height="wrap_content"
             android:src="@drawable/warning"
             android:visibility="gone"
-            android:contentDescription="Item(s) not found in preloaded data"
-            android:tooltipText="Item(s) not found in preloaded data"/>
+            android:contentDescription="Duplicate item(s)"
+            android:tooltipText="Duplicate item(s)"/>
 
         <ImageView
             android:id="@+id/location_error_symbol"
