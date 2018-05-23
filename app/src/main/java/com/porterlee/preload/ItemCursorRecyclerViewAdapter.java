@@ -21,6 +21,11 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
     private HashMap<Utils.Holder, Integer> mHolderToPreloadedCursorIndexMap = new HashMap<>();
     private HashMap<String, Utils.Holder<Integer>> mBarcodeToHolderMap = new HashMap<>();
     private ArrayList<String> mDuplicateBarcodes = new ArrayList<>();
+    private int mMisplacedCount = 0;
+    private int mNotPreloadedCount = 0;
+    private int mDuplicateCount = 0;
+    private int mPreloadedScannedCount = 0;
+    private int mPreloadedTotalCount = 0;
 
     public ItemCursorRecyclerViewAdapter(Cursor cursor) {
         mCursor = cursor;
@@ -98,6 +103,17 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
             oldCursor.unregisterDataSetObserver(mDataSetObserver);
         }
         mCursor = newCursor;
+
+        mHolderList.clear();
+        mHolderToPreloadedCursorIndexMap.clear();
+        mBarcodeToHolderMap.clear();
+        mDuplicateBarcodes.clear();
+        mMisplacedCount = 0;
+        mNotPreloadedCount = 0;
+        mDuplicateCount = 0;
+        mPreloadedScannedCount = 0;
+        mPreloadedTotalCount = 0;
+
         if (mCursor != null) {
             if (mDataSetObserver != null) {
                 mCursor.registerDataSetObserver(mDataSetObserver);
@@ -116,10 +132,6 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
     }
 
     private void remapCursor() {
-        mHolderList.clear();
-        mHolderToPreloadedCursorIndexMap.clear();
-        mBarcodeToHolderMap.clear();
-        mDuplicateBarcodes.clear();
         SparseArray<Utils.Holder<Integer>> idToHolderMap = new SparseArray<>();
         ArrayList<Utils.Holder> preloadedHolders = new ArrayList<>();
         final int preloadedItemIdColumnIndex = mCursor.getColumnIndex("preloaded_item_id");
@@ -129,35 +141,40 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
 
         mCursor.moveToPosition(-1);
         while (mCursor.moveToNext()) {
-            if (PreloadInventoryDatabase.ItemTable.Source.PRELOAD.equals(mCursor.getString(sourceColumnIndex))) {
+            if (PreloadInventoryDatabase.ItemTable.Source.PRELOAD.equals(mCursor.getString(sourceColumnIndex))) { // has preloaded source (preloaded item)
                 Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                 mHolderList.add(current);
                 mHolderToPreloadedCursorIndexMap.put(current, current.get());
                 mBarcodeToHolderMap.put(mCursor.getString(barcodeColumnIndex), current);
                 idToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
                 preloadedHolders.add(current);
-            } else if (PreloadInventoryDatabase.ItemTable.Source.SCANNER.equals(mCursor.getString(sourceColumnIndex))) {
-                if (PreloadInventoryDatabase.ItemTable.Status.MISPLACED.equals(mCursor.getString(statusColumnIndex))) {
+                mPreloadedTotalCount++;
+            } else if (PreloadInventoryDatabase.ItemTable.Source.SCANNER.equals(mCursor.getString(sourceColumnIndex))) { // has scanner source (scanned item)
+                if (PreloadInventoryDatabase.ItemTable.Status.MISPLACED.equals(mCursor.getString(statusColumnIndex))) { // has misplaced status (misplaced item)
                     Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                     mHolderList.add(0, current);
                     mBarcodeToHolderMap.put(mCursor.getString(barcodeColumnIndex), current);
                     idToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
-                } else {
+                    mMisplacedCount++;
+                } else { // not misplaced
                     final Utils.Holder<Integer> preloadItemHolder = idToHolderMap.get(mCursor.getInt(preloadedItemIdColumnIndex), null);
-                    if (preloadItemHolder == null) {
+                    if (preloadItemHolder == null) { // has no preloaded data (non-preloaded item)
                         Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                         mHolderList.add(0, current);
                         mBarcodeToHolderMap.put(mCursor.getString(barcodeColumnIndex), current);
                         idToHolderMap.append(mCursor.getInt(mRowIdColumn), current);
+                        mNotPreloadedCount++;
                     } else {
-                        if (preloadedHolders.contains(preloadItemHolder)) {
+                        if (preloadedHolders.contains(preloadItemHolder)) { // preloaded data is still there (scanned preloaded item)
                             preloadItemHolder.set(mCursor.getPosition());
                             preloadedHolders.remove(preloadItemHolder);
-                        } else {
+                            mPreloadedScannedCount++;
+                        } else { // preloaded data was replaced by a scanned version already (duplicate scanned preloaded item)
                             Utils.Holder<Integer> current = new Utils.Holder<>(mCursor.getPosition());
                             mHolderList.add(mHolderList.indexOf(preloadItemHolder), current);
                             mHolderToPreloadedCursorIndexMap.put(current, mHolderToPreloadedCursorIndexMap.get(preloadItemHolder));
                             mDuplicateBarcodes.add(mCursor.getString(barcodeColumnIndex));
+                            mDuplicateCount++;
                         }
                     }
                 }
@@ -169,6 +186,26 @@ public abstract class ItemCursorRecyclerViewAdapter<VH extends RecyclerView.View
 
     public boolean getIsDuplicate(String barcode) {
         return mDuplicateBarcodes.contains(barcode);
+    }
+
+    public int getMisplacedCount() {
+        return mMisplacedCount;
+    }
+
+    public int getNotPreloadedCount() {
+        return mNotPreloadedCount;
+    }
+
+    public int getDuplicateCount() {
+        return mDuplicateCount;
+    }
+
+    public int getPreloadedScannedCount() {
+        return mPreloadedScannedCount;
+    }
+
+    public int getPreloadedTotalCount() {
+        return mPreloadedTotalCount;
     }
 
     public int getPreloadedDataIndex(int index) {
