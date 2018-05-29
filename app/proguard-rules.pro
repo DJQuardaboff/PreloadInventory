@@ -20,7 +20,4 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontwarn device.scanner.**
--dontwarn device.common.**
--dontwarn device.sdk.**
--dontwarn com.symbol.emdk.**
 -dontwarn android.os.**

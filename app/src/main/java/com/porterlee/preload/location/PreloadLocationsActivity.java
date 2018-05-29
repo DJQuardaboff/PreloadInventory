@@ -787,11 +787,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
                     TEMP_OUTPUT_FILE.delete();
                     Log.w(TAG, "Could not rename temp file to \"" + outputFile.getName() + "\"");
                     return "Could not rename temp file to \"" + outputFile.getName() + "\"";
-                } else {
-                    if (!PreloadInventoryActivity.OUTPUT_FILE.delete() && PreloadInventoryActivity.OUTPUT_FILE.exists()) {
-                        Log.w(TAG, "Could not delete inventory file");
-                        return "Could not delete inventory file";
-                    }
                 }
 
                 refreshExternalPath();

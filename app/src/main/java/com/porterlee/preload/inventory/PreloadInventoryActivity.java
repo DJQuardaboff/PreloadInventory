@@ -80,8 +80,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     @Language("RoomSql")
     private static final String LOCATION_LIST_QUERY = "SELECT MIN(" + LocationTable.Keys.ID + ") AS _id, MAX(" + LocationTable.Keys.ID + ") AS max_id, MAX(" + LocationTable.Keys.PRELOADED_LOCATION_ID + ") AS preloaded_location_id, MAX(" + LocationTable.Keys.PROGRESS + ") AS progress, " + LocationTable.Keys.BARCODE + " AS barcode, MAX(" + LocationTable.Keys.DESCRIPTION + ") AS description, MIN(" + LocationTable.Keys.SOURCE + ") AS source, MAX(" + LocationTable.Keys.STATUS + ") AS status, MAX(" + LocationTable.Keys.DATE_TIME + ") AS date_time FROM " + LocationTable.NAME + " WHERE _id NOT NULL GROUP BY barcode ORDER BY source, _id";
     public static final File EXTERNAL_PATH = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY);
-    public static final File EXTERNAL_PATH2 = new File(Environment.getExternalStorageDirectory(), PreloadInventoryDatabase.DIRECTORY2);
-    public static final File OUTPUT_FILE = new File(EXTERNAL_PATH2, "data.txt");
+    public static final File OUTPUT_FILE = new File(EXTERNAL_PATH, "output.txt");
     public static final File INPUT_FILE = new File(EXTERNAL_PATH, "data.txt");
     private static final String TAG = PreloadInventoryActivity.class.getSimpleName();
     //private SQLiteStatement GET_NOT_MISPLACED_SCANNED_ITEM_COUNT_WITH_PRELOADED_LOCATION_ID_STATEMENT;
