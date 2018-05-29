@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 public class PreloadInventoryDatabase {
     public static final String FILE_NAME = "preload_inventory.db";
     public static final String DIRECTORY = "Preload/Inventory";
+    public static final String DIRECTORY2 = "Inventory";
     public static final String ARCHIVE_DIRECTORY = "Archives";
     public static final String ID = "_id";
     public static final String PRELOADED_ITEM_ID = "preloaded_item_id";
