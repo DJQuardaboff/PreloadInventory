@@ -55,6 +55,7 @@ import java.util.regex.Pattern;
 
 import com.porterlee.plcscanners.AbstractScanner;
 import com.porterlee.plcscanners.Utils;
+import com.porterlee.preload.BarcodeType;
 import com.porterlee.preload.BuildConfig;
 import com.porterlee.preload.CursorRecyclerViewAdapter;
 import com.porterlee.preload.DividerItemDecoration;
@@ -296,7 +297,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             final String barcode = params[0];
 
-            if (isLocation(barcode)) {
+            if (BarcodeType.Location.isOfType(barcode)) {
                 boolean isPreloaded;
                 long locationId;
 
@@ -325,7 +326,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     return new Object[] { "saving", barcode };
 
                 return new Object[] { isPreloaded ? "preloaded_location" : "non_preloaded_location", barcode, isPreloaded ? mDatabase.insert(LocationTable.NAME, null, newLocationValues) : -1, true };
-            } else if (isItem(barcode) || isContainer(barcode)) {
+            } else if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
                 if (mSelectedLocationBarcode.isEmpty() || (mSelectedLocationId < 0 && mSelectedMaxLocationId < 0 && mSelectedPreloadedLocationId < 0))
                     return new Object[] { "no_location" };
 
@@ -411,7 +412,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 case "not_recognized":
                     getScanner().onScanComplete(false);
                     Log.i(TAG, String.format("Unrecognised barcode scanned: \"%s\"", barcode));
-                    toastShort("Barcode not recognised");
+                    toastShort("Barcode \"" + barcode + "\" not recognised");
                     return;
             }
 
@@ -1419,18 +1420,6 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         return DateFormat.format(MainActivity.DATE_FORMAT, millis).toString();
     }
 
-    static boolean isItem(@NonNull String barcode) {
-        return barcode.startsWith("e1") || barcode.startsWith("E");// || barcode.startsWith("t") || barcode.startsWith("T");
-    }
-
-    static boolean isContainer(@NonNull String barcode) {
-        return barcode.startsWith("m1") || barcode.startsWith("M");// || barcode.startsWith("a") || barcode.startsWith("A");
-    }
-
-    static boolean isLocation(@NonNull String barcode) {
-        return barcode.startsWith("V");// || barcode.startsWith("L5");
-    }
-
     private void updateInfo() {
         TextView scannedItemsTextView = findViewById(R.id.items_scanned_text_view);
         TextView misplacedItemsTextView = findViewById(R.id.misplaced_items_text_view);
@@ -1472,7 +1461,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                 if (elements.length > 0) {
                     GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.bindString(1, elements[1]);
                     GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.bindString(1, elements[1]);
-                    if (isLocation(elements[1]) ? !(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) : !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
+                    if (BarcodeType.Location.isOfType(elements[1]) ? !(GET_DUPLICATES_OF_PRELOADED_LOCATION_BARCODE_STATEMENT.simpleQueryForLong() > 0) : !(GET_DUPLICATES_OF_PRELOADED_ITEM_BARCODE_STATEMENT.simpleQueryForLong() > 0)) {
                         if (elements.length == 3 && elements[0].equals("L")) {
                             //System.out.println("Location: barcode = \'" + elements[1] + "\', description = \'" + elements[2] + "\'");
                             currentLocationId = addPreloadLocation(elements[1], elements[2]);

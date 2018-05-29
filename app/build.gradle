@@ -6,8 +6,8 @@ android {
         applicationId "com.porterlee.preload"
         minSdkVersion 17
         targetSdkVersion 27
-        versionCode 6
-        versionName "1.5"
+        versionCode 7
+        versionName "1.6"
         //testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -20,21 +20,37 @@ android {
             debuggable true
         }
     }
-    flavorDimensions "scannerSdk"
+    flavorDimensions "system", "scannerSdk"
     productFlavors {
-        janam_XM5 {}
-        janam_XT2_XT2__XM75_XT100_XG200 {}
-        zebra_emdk_symbol_26 {}
-        /*
+        Default {
+            dimension "system"
+            resValue "string", "app_name", "Preload Inventory"
+        }
+        LAM {
+            dimension "system"
+            resValue "string", "app_name", "LAM Preload"
+            applicationIdSuffix ".lam"
+        }
+        janam_XM5 {
+            dimension "scannerSdk"
+        }
+        janam_XT2_XT2__XM75_XT100_XG200 {
+            dimension "scannerSdk"
+        }
+        zebra_emdk_symbol_26 {
+            dimension "scannerSdk"
+        }
         applicationVariants.all {
             variant ->
                 android.productFlavors.all {
                     flavor ->
-                        println(flavor.name)
-                        variant.buildConfigField 'boolean', 'is_' + flavor.getName(), String.valueOf(variant.getName().startsWith(flavor.name))
+                        for (int i = 0; i < flavorDimensionList.size(); i++) {
+                            if (flavor.dimension == flavorDimensionList[i]) {
+                                variant.buildConfigField 'boolean', 'is_' + flavor.getName() + "_" + flavor.dimension, String.valueOf(flavor.name == variant.productFlavors[i].getName())
+                            }
+                        }
                 }
         }
-        */
     }
     android.applicationVariants.all { variant ->
         variant.outputs.all {
