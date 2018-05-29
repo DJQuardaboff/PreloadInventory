@@ -40,6 +40,7 @@ import android.widget.Toast;
 
 import com.porterlee.plcscanners.AbstractScanner;
 import com.porterlee.plcscanners.Utils;
+import com.porterlee.preload.BarcodeType;
 import com.porterlee.preload.BuildConfig;
 import com.porterlee.preload.DividerItemDecoration;
 import com.porterlee.preload.MainActivity;
@@ -103,13 +104,13 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         getScanner().setOnBarcodeScannedListener(new AbstractScanner.OnBarcodeScannedListener() {
             @Override
             public void onBarcodeScanned(String barcode) {
-                if (isItem(barcode) || isContainer(barcode)) {
+                if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
                     getScanner().onScanComplete(false);
                     toastShort("Cannot accept items in preload location mode");
                     return;
                 }
 
-                if (!isLocation(barcode)) {
+                if (!BarcodeType.Location.isOfType(barcode)) {
                     getScanner().onScanComplete(false);
                     toastShort("Barcode \"" + barcode + "\" not recognised");
                     return;
@@ -643,18 +644,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
 
     private CharSequence formatDate(long millis) {
         return DateFormat.format(MainActivity.DATE_FORMAT, millis).toString();
-    }
-
-    private boolean isItem(@NonNull String barcode) {
-        return barcode.startsWith("e1") || barcode.startsWith("E");// || barcode.startsWith("t") || barcode.startsWith("T");
-    }
-
-    private boolean isContainer(@NonNull String barcode) {
-        return barcode.startsWith("m1") || barcode.startsWith("M");// || barcode.startsWith("a") || barcode.startsWith("A");
-    }
-
-    private boolean isLocation(@NonNull String barcode) {
-        return barcode.startsWith("V");// || barcode.startsWith("L5");
     }
 
     class PreloadLocationViewHolder extends RecyclerView.ViewHolder {
