@@ -728,7 +728,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
         setContentView(R.layout.preload_inventory_layout);
 
         if (getSupportActionBar() != null)
-            getSupportActionBar().setTitle(String.format("%1s v%2s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
+            getSupportActionBar().setTitle(String.format("%s v%s", getString(R.string.app_name), BuildConfig.VERSION_NAME));
 
         mSharedPreferences = getSharedPreferences("preload_preferences", MODE_PRIVATE);
 

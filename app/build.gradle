@@ -52,10 +52,16 @@ android {
                 }
         }
     }
-    android.applicationVariants.all { variant ->
-        variant.outputs.all {
-            outputFileName = "preload_inventory-${variant.name}-${variant.versionName}.apk"
-        }
+    android.applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                output ->
+                    if (output.baseName.startsWith("LAM")) {
+                        outputFileName = "v${variant.versionName}/LAMPreload.apk"
+                    } else {
+                        outputFileName = "v${variant.versionName}/PreloadInventory.apk"
+                    }
+            }
     }
     configurations.all {
         resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
@@ -70,7 +76,7 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support:support-core-utils:27.1.1'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
-    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.1'
     implementation('me.zhanghai.android.materialprogressbar:library:1.4.2') {
         exclude group: 'com.android.support'
         //exclude module: 'appcompat-v7'
