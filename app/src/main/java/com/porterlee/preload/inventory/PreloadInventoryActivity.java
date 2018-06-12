@@ -124,6 +124,20 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     private ItemCursorRecyclerViewAdapter<ItemViewHolder> mItemRecyclerAdapter;
     private volatile SQLiteDatabase mDatabase;
 
+    private final AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener = new AbstractScanner.OnBarcodeScannedListener() {
+        @Override
+        public void onBarcodeScanned(String barcode) {
+            Log.e(TAG, "PreloadInventoryActivity.onBarcodeScanned()");
+            if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING)) {
+                Utils.vibrate(getApplicationContext());
+                toastShort("Cannot scan while saving");
+                return;
+            }
+
+            new WeakAsyncTask<>(scanBarcodeTaskListeners).execute(barcode);
+        }
+    };
+
     private final WeakAsyncTask.AsyncTaskListeners<Void, Float, Pair<String, String>> saveTaskListeners = new WeakAsyncTask.AsyncTaskListeners<>(null, new WeakAsyncTask.OnDoInBackgroundListener<Void, Float, Pair<String, String>>() {
         private static final int MAX_UPDATES = 100;
 
@@ -362,7 +376,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             switch (resultType) {
                 case "no_location":
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     Log.i(TAG, "Barcode scanned before location");
                     toastShort("A location must be scanned first");
                     return;
@@ -375,7 +389,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
 
             switch (resultType) {
                 case "duplicate":
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     getScanner().setIsEnabled(false);
                     new AlertDialog.Builder(PreloadInventoryActivity.this)
                             .setCancelable(false)
@@ -405,12 +419,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             }).create().show();
                     return;
                 case "saving":
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     Log.i(TAG, "Cannot scan barcode while saving");
                     toastShort("Cannot scan barcode while saving");
                     return;
                 case "not_recognized":
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     Log.i(TAG, String.format("Unrecognised barcode scanned: \"%s\"", barcode));
                     toastShort("Barcode \"" + barcode + "\" not recognised");
                     return;
@@ -425,12 +439,12 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
             switch (resultType) {
                 case "preloaded_location":
                     if (rowId < 0) {
-                        getScanner().onScanComplete(false);
+                        AbstractScanner.onScanComplete(false);
                         Log.w(TAG, String.format("Error adding location \"%s\" to the list", barcode));
                         toastLong(String.format("Error adding location \"%s\" to the list", barcode));
                         //throw new SQLiteException(String.format("Error adding location \"%s\" to the list", barcode));
                     } else {
-                        getScanner().onScanComplete(true);
+                        AbstractScanner.onScanComplete(true);
                         mChangedSinceLastArchive = true;
                         if (refreshList)
                             asyncRefreshLocationsScrollToLocation(barcode);
@@ -451,16 +465,16 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                             asyncScrollToLocation(barcode);
                     }*/
 
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     toastShort("Non-preloaded location scanned");
                     break;
                 case "preloaded_item":
                     if (rowId < 0) {
-                        getScanner().onScanComplete(false);
+                        AbstractScanner.onScanComplete(false);
                         Log.w(TAG, String.format("Error adding item \"%s\" to the list", barcode));
                         toastLong(String.format("Error adding item \"%s\" to the list", barcode));
                     } else {
-                        getScanner().onScanComplete(true);
+                        AbstractScanner.onScanComplete(true);
                         mChangedSinceLastArchive = true;
                         //asyncRefreshLocations();
                         asyncRefreshItemsScrollToItem(barcode);
@@ -471,7 +485,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     }
                     break;
                 case "non_preloaded_item":
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     if (rowId < 0) {
                         Log.w(TAG, String.format("Error adding item \"%s\" to the list", barcode));
                         toastLong(String.format("Error adding item \"%s\" to the list", barcode));
@@ -487,7 +501,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
                     }
                     break;
                 case "misplaced_item":
-                    getScanner().onScanComplete(false);
+                    AbstractScanner.onScanComplete(false);
                     if (rowId < 0) {
                         Log.w(TAG, String.format("Error adding item \"%s\" to the list", barcode));
                         toastLong(String.format("Error adding item \"%s\" to the list", barcode));
@@ -704,26 +718,13 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getScanner().setActivity(this);
+        AbstractScanner.setActivity(this);
 
         if (!getScanner().init()) {
             finish();
             toastLong("Scanner failed to initialize");
             return;
         }
-
-        getScanner().setOnBarcodeScannedListener(new AbstractScanner.OnBarcodeScannedListener() {
-            @Override
-            public void onBarcodeScanned(String barcode) {
-                if (saveTask.getStatus().equals(AsyncTask.Status.RUNNING)) {
-                    Utils.vibrate(getApplicationContext());
-                    toastShort("Cannot scan while saving");
-                    return;
-                }
-
-                new WeakAsyncTask<>(scanBarcodeTaskListeners).execute(barcode);
-            }
-        });
 
         setContentView(R.layout.preload_inventory_layout);
 
@@ -1174,6 +1175,7 @@ public class PreloadInventoryActivity extends AppCompatActivity implements Activ
     protected void onResume() {
         super.onResume();
         getScanner().onResume();
+        AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
     }
 
     @Override

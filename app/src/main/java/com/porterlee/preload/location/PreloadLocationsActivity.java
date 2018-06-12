@@ -85,6 +85,43 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     private RecyclerView.Adapter locationRecyclerAdapter;
     private SQLiteDatabase db;
 
+    private final AbstractScanner.OnBarcodeScannedListener onBarcodeScannedListener = new AbstractScanner.OnBarcodeScannedListener() {
+        @Override
+        public void onBarcodeScanned(String barcode) {
+            Log.e(TAG, "PreloadLocationActivity.onBarcodeScanned()");
+            if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
+                AbstractScanner.onScanComplete(false);
+                toastShort("Cannot accept items in preload location mode");
+                return;
+            }
+
+            if (!BarcodeType.Location.isOfType(barcode)) {
+                AbstractScanner.onScanComplete(false);
+                toastShort("Barcode \"" + barcode + "\" not recognised");
+                return;
+            }
+
+            if (saveTask != null) {
+                AbstractScanner.onScanComplete(false);
+                toastShort("Cannot scan while saving");
+                return;
+            }
+
+            Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
+
+            if (cursor.getCount() > 0) {
+                AbstractScanner.onScanComplete(false);
+                toastShort("Location was already scanned");
+                cursor.close();
+                return;
+            }
+
+            AbstractScanner.onScanComplete(true);
+            cursor.close();
+            addLocation(barcode);
+        }
+    };
+
     private AbstractScanner getScanner() {
         return AbstractScanner.getInstance();
     }
@@ -93,49 +130,13 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getScanner().setActivity(this);
+        AbstractScanner.setActivity(this);
 
         if (!getScanner().init()) {
             finish();
             toastLong("Scanner failed to initialize");
             return;
         }
-
-        getScanner().setOnBarcodeScannedListener(new AbstractScanner.OnBarcodeScannedListener() {
-            @Override
-            public void onBarcodeScanned(String barcode) {
-                if (BarcodeType.Item.isOfType(barcode) || BarcodeType.Container.isOfType(barcode)) {
-                    getScanner().onScanComplete(false);
-                    toastShort("Cannot accept items in preload location mode");
-                    return;
-                }
-
-                if (!BarcodeType.Location.isOfType(barcode)) {
-                    getScanner().onScanComplete(false);
-                    toastShort("Barcode \"" + barcode + "\" not recognised");
-                    return;
-                }
-
-                if (saveTask != null) {
-                    getScanner().onScanComplete(false);
-                    toastShort("Cannot scan while saving");
-                    return;
-                }
-
-                Cursor cursor = db.rawQuery("SELECT " + LocationTable.Keys.BARCODE + " FROM " + LocationTable.NAME + " WHERE " + LocationTable.Keys.BARCODE + " = ?;", new String[] {String.valueOf(barcode)});
-
-                if (cursor.getCount() > 0) {
-                    getScanner().onScanComplete(false);
-                    toastShort("Location was already scanned");
-                    cursor.close();
-                    return;
-                }
-
-                getScanner().onScanComplete(true);
-                cursor.close();
-                addLocation(barcode);
-            }
-        });
 
         setContentView(R.layout.preload_locations_layout);
 
@@ -305,9 +306,9 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
     @Override
     protected void onResume() {
         super.onResume();
-        refreshFileMenuOption();
         //mFileObserver.startWatching();
         getScanner().onResume();
+        AbstractScanner.setOnBarcodeScannedListener(onBarcodeScannedListener);
     }
 
     @Override
@@ -338,7 +339,6 @@ public class PreloadLocationsActivity extends AppCompatActivity implements Activ
         mOptionsMenu = menu;
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.preload_locations_menu, menu);
-        refreshFileMenuOption();
         return super.onCreateOptionsMenu(menu) | getScanner().onCreateOptionsMenu(menu);
     }
 
